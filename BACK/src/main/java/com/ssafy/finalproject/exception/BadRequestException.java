@@ -1,0 +1,8 @@
+package com.ssafy.finalproject.exception;
+
+public class BadRequestException extends CustomException {
+    public BadRequestException(String message) {
+        super("BAD_REQUEST", message);
+    }
+}
+

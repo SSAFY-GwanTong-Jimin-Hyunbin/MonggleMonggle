@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.finalproject.model.dao.DreamsResultsDao">
+
+    <resultMap id="DreamResultResultMap" type="com.ssafy.finalproject.model.entity.DreamResult">
+        <id property="id" column="id"/>
+        <result property="dreamId" column="dream_id"/>
+        <result property="dreamInterpretation" column="dream_interpretation"/>
+        <result property="todayFortuneSummary" column="today_fortune_summary"/>
+        <result property="luckyColorName" column="lucky_color_name"/>
+        <result property="luckyColorNumber" column="lucky_color_number"/>
+        <result property="luckyColorReason" column="lucky_color_reason"/>
+        <result property="luckyItemName" column="lucky_item_name"/>
+        <result property="luckyItemReason" column="lucky_item_reason"/>
+        <result property="imageUrl" column="image_url"/>
+        <result property="createdDate" column="created_date"/>
+        <result property="deletedDate" column="deleted_date"/>
+    </resultMap>
+
+    <!-- AI 분석 결과 저장 -->
+    <insert id="insertDreamResult" parameterType="com.ssafy.finalproject.model.entity.DreamResult" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dream_results (
+            dream_id, dream_interpretation, today_fortune_summary,
+            lucky_color_name, lucky_color_number, lucky_color_reason,
+            lucky_item_name, lucky_item_reason, image_url, created_date
+        )
+        VALUES (
+            #{dreamId}, #{dreamInterpretation}, #{todayFortuneSummary},
+            #{luckyColorName}, #{luckyColorNumber}, #{luckyColorReason},
+            #{luckyItemName}, #{luckyItemReason}, #{imageUrl}, NOW()
+        )
+    </insert>
+
+    <!-- 꿈 ID로 분석 결과 조회 -->
+    <select id="findByDreamId" parameterType="long" resultMap="DreamResultResultMap">
+        SELECT *
+        FROM dream_results
+        WHERE dream_id = #{dreamId}
+          AND deleted_date IS NULL
+    </select>
+
+    <!-- AI 분석 결과 수정 -->
+    <update id="updateDreamResult" parameterType="com.ssafy.finalproject.model.entity.DreamResult">
+        UPDATE dream_results
+        SET image_url = #{imageUrl}
+        WHERE dream_id = #{dreamId}
+    </update>
+
+    <!-- AI 분석 결과 삭제 -->
+    <update id="deleteDreamResult" parameterType="long">
+        UPDATE dream_results
+        SET deleted_date = NOW()
+        WHERE dream_id = #{dreamId}
+    </update>
+
+    <!-- 꿈 ID로 분석 결과 존재 여부 확인 -->
+    <select id="existsByDreamId" parameterType="long" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM dream_results
+        WHERE dream_id = #{dreamId}
+          AND deleted_date IS NULL
+    </select>
+
+</mapper>

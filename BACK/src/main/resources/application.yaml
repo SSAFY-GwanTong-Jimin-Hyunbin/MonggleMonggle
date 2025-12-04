@@ -1,0 +1,56 @@
+# 서버 포트
+server:
+  port: 8080
+
+# 데이터베이스 연동 설정 (env 처리해야함)
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/dream_db?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: root
+    password:
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 30000
+
+  # 파일 업로드 설정
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# MyBatis 설정
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.ssafy.finalproject.model.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+# JWT 설정
+jwt:
+  secret: your-secret-key-here-must-be-at-least-256-bits-long-for-HS256-algorithm
+  expiration: 86400000 # 24시간 (밀리초)
+
+# FastAPI 연동 설정
+fastapi:
+  url: http://localhost:8000
+  timeout: 60000 # 60초
+
+# 로깅 설정
+logging:
+  level:
+    com.ssafy.finalproject: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: DEBUG
+
+# Springdoc OpenAPI 설정
+springdoc:
+  swagger-ui:
+    tags-sorter: alpha  # 태그를 알파벳 순으로 정렬 (1, 2, 3... 순서)
+    operations-sorter: alpha  # 각 태그 내 operation도 알파벳 순 정렬
+    display-request-duration: true
+    doc-expansion: none  # 기본적으로 모두 접혀있음
+  api-docs:
+    path: /v3/api-docs
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json

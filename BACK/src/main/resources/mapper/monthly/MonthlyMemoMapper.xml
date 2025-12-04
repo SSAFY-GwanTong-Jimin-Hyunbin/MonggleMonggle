@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.finalproject.model.dao.MonthlyMemoDao">
+
+    <resultMap id="MonthlyMemoResultMap" type="com.ssafy.finalproject.model.entity.MonthlyMemo">
+        <id property="memoId" column="memo_id"/>
+        <result property="analysisId" column="analysis_id"/>
+        <result property="memoContent" column="memo_content"/>
+        <result property="createdDate" column="created_date"/>
+        <result property="updatedDate" column="updated_date"/>
+        <result property="deletedDate" column="deleted_date"/>
+    </resultMap>
+
+    <!-- 월별 메모 저장 -->
+    <insert id="insertMemo" parameterType="com.ssafy.finalproject.model.entity.MonthlyMemo" useGeneratedKeys="true" keyProperty="memoId">
+        INSERT INTO dream_monthly_memo (analysis_id, memo_content, created_date)
+        VALUES (#{analysisId}, #{memoContent}, NOW())
+    </insert>
+
+    <!-- 분석 ID로 메모 조회 -->
+    <select id="findByAnalysisId" parameterType="long" resultMap="MonthlyMemoResultMap">
+        SELECT *
+        FROM dream_monthly_memo
+        WHERE analysis_id = #{analysisId}
+          AND deleted_date IS NULL
+    </select>
+
+    <!-- 월별 메모 수정 -->
+    <update id="updateMemo" parameterType="com.ssafy.finalproject.model.entity.MonthlyMemo">
+        UPDATE dream_monthly_memo
+        SET memo_content = #{memoContent},
+            updated_date = NOW()
+        WHERE memo_id = #{memoId}
+    </update>
+
+    <!-- 월별 메모 삭제 (Soft Delete) -->
+    <update id="deleteMemo" parameterType="long">
+        UPDATE dream_monthly_memo
+        SET deleted_date = NOW()
+        WHERE memo_id = #{memoId}
+    </update>
+
+</mapper>

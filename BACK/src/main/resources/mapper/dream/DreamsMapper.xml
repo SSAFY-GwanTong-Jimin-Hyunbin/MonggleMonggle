@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ssafy.finalproject.model.dao.DreamsDao">
+
+    <resultMap id="DreamResultMap" type="com.ssafy.finalproject.model.entity.Dream">
+        <id property="dreamId" column="dream_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="emotionId" column="emotion_id"/>
+        <result property="dreamDate" column="dream_date"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="createdDate" column="created_date"/>
+        <result property="deletedDate" column="deleted_date"/>
+    </resultMap>
+
+    <!-- 꿈 일기 작성 -->
+    <insert id="insertDream" parameterType="com.ssafy.finalproject.model.entity.Dream" useGeneratedKeys="true" keyProperty="dreamId">
+        INSERT INTO dreams (user_id, emotion_id, dream_date, title, content, created_date)
+        VALUES (#{userId}, #{emotionId}, #{dreamDate}, #{title}, #{content}, NOW())
+    </insert>
+
+    <!-- 꿈 일기 ID로 조회 -->
+    <select id="findById" parameterType="long" resultMap="DreamResultMap">
+        SELECT *
+        FROM dreams
+        WHERE dream_id = #{dreamId}
+          AND deleted_date IS NULL
+    </select>
+
+    <!-- 월별 꿈 일기 목록 조회 -->
+    <select id="findByUserIdAndYearMonth" resultMap="DreamResultMap">
+        SELECT d.*, e.emotion_name
+        FROM dreams d
+        LEFT JOIN emotion_scores e ON d.emotion_id = e.emotion_id
+        WHERE d.user_id = #{userId}
+          AND YEAR(d.dream_date) = #{year}
+          AND MONTH(d.dream_date) = #{month}
+          AND d.deleted_date IS NULL
+        ORDER BY d.dream_date DESC
+    </select>
+
+    <!-- 꿈 일기 수정 -->
+    <update id="updateDream" parameterType="com.ssafy.finalproject.model.entity.Dream">
+        UPDATE dreams
+        SET emotion_id = #{emotionId},
+            title = #{title},
+            content = #{content}
+        WHERE dream_id = #{dreamId}
+    </update>
+
+    <!-- 꿈 일기 삭제 (Soft Delete) -->
+    <update id="deleteDream" parameterType="long">
+        UPDATE dreams
+        SET deleted_date = NOW()
+        WHERE dream_id = #{dreamId}
+    </update>
+
+    <!-- 사용자의 월별 꿈 개수 조회 -->
+    <select id="countByUserIdAndYearMonth" resultType="int">
+        SELECT COUNT(*)
+        FROM dreams
+        WHERE user_id = #{userId}
+          AND YEAR(dream_date) = #{year}
+          AND MONTH(dream_date) = #{month}
+          AND deleted_date IS NULL
+    </select>
+
+</mapper>
