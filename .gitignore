@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# IDE & editor settings
+.vscode/
+.idea/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.venv/
+venv/
+
+# Model assets must stay local
+AI_API/models/
+
+# AI API generated/intermediate data
+AI_API/generated_results/
+
+# Node/Vite build outputs
+FRONT/node_modules/
+FRONT/dist/
+FRONT/.vite/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Environment & secrets
+.env
+.env.*
+
+

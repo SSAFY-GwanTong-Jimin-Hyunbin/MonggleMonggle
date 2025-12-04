@@ -1,0 +1,690 @@
+<script setup>
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { useDreamEntriesStore } from '../stores/dreamEntriesStore';
+
+const router = useRouter();
+const dreamEntriesStore = useDreamEntriesStore();
+const {
+  dreamTitle,
+  dreamContent,
+  formattedSelectedDate,
+  showAnalysisOption,
+  selectedDate,
+  selectedEmotion
+} = storeToRefs(dreamEntriesStore);
+const { saveDream, deleteDream, setEmotion, enableEditMode, resetWriteState } = dreamEntriesStore;
+
+const emotions = [
+  { value: 1, label: '매우 나쁨', icon: '😫' },
+  { value: 2, label: '나쁨', icon: '😞' },
+  { value: 3, label: '보통', icon: '😐' },
+  { value: 4, label: '좋음', icon: '🙂' },
+  { value: 5, label: '매우 좋음', icon: '🥰' }
+];
+
+function updateEmotion(event) {
+  if (!showAnalysisOption.value) {
+    setEmotion(Number(event.target.value));
+  }
+}
+
+onMounted(() => {
+  if (!selectedDate.value) {
+    router.replace({ name: 'calendar' });
+  }
+});
+
+function handleBack() {
+  resetWriteState();
+  router.push({ name: 'calendar' });
+}
+
+function handleSave() {
+  if (!dreamTitle.value?.trim() || !dreamContent.value?.trim()) {
+    alert('제목과 내용을 모두 입력해주세요.');
+    return;
+  }
+
+  const saved = saveDream();
+  if (!saved) {
+    alert('날짜를 먼저 선택해주세요.');
+  }
+}
+
+function handleDelete() {
+  if (confirm('정말로 이 꿈 기록을 삭제하시겠습니까?')) {
+    deleteDream();
+    router.push({ name: 'calendar' });
+  }
+}
+
+function handleEdit() {
+  enableEditMode();
+}
+
+function handleAnalysis() {
+  router.push({ name: 'loading' });
+}
+</script>
+
+<template>
+  <div class="view-wrapper write-view">
+    <div class="write-card">
+      <div class="main-content">
+        <div class="card-header">
+          <button @click="handleBack" class="back-icon" aria-label="뒤로가기">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h3>{{ formattedSelectedDate }}</h3>
+          <div class="spacer"></div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="form-content">
+          <input v-model="dreamTitle" type="text" placeholder="꿈 제목을 입력해주세요" class="title-input" :disabled="showAnalysisOption" />
+
+          <div class="divider"></div>
+
+          <textarea v-model="dreamContent" placeholder="어떤 꿈을 꾸셨나요?" class="content-input" :disabled="showAnalysisOption"></textarea>
+        </div>
+      </div>
+
+       <div class="side-actions">
+         <div class="emotion-selector" :class="{ 'read-only': showAnalysisOption }">
+           <p class="emotion-label">꿈 속의 나</p>
+           
+           <div class="current-emotion-display">
+             <transition name="scale" mode="out-in">
+               <div :key="selectedEmotion || 'none'" class="emoji-wrapper">
+                 <span class="main-emoji">
+                   {{ selectedEmotion ? emotions.find(e => e.value === selectedEmotion)?.icon : '🤔' }}
+                 </span>
+                 <span class="main-label">
+                   {{ selectedEmotion ? emotions.find(e => e.value === selectedEmotion)?.label : '선택해주세요' }}
+                 </span>
+               </div>
+             </transition>
+           </div>
+
+           <div class="slider-container">
+             <input 
+               type="range" 
+               min="1" 
+               max="5" 
+               step="1" 
+               :value="selectedEmotion || 3" 
+               @input="updateEmotion"
+               class="emotion-range"
+               :disabled="showAnalysisOption"
+               :style="{ backgroundSize: ((selectedEmotion || 3) - 1) * 25 + '% 100%' }"
+             >
+             <div class="range-marks">
+               <span v-for="n in 5" :key="n" class="mark" :class="{ active: selectedEmotion === n }"></span>
+             </div>
+           </div>
+         </div>
+
+         <transition name="fade" mode="out-in">
+          <!-- 작성 중일 때: 저장 버튼 -->
+          <div v-if="!showAnalysisOption" key="save-mode" class="button-group">
+            <button
+              @click="handleSave"
+              class="action-btn save-btn"
+              aria-label="꿈 기록 저장"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+              </svg>
+              <span class="label">작성 완료</span>
+            </button>
+          </div>
+
+          <!-- 작성 완료 시: 수정, 분석 버튼 -->
+          <div v-else key="view-mode" class="button-group">
+            <button
+              @click="handleEdit"
+              class="action-btn edit-btn"
+              aria-label="꿈 기록 수정"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span class="label">수정하기</span>
+            </button>
+
+            <button
+              @click="handleDelete"
+              class="action-btn delete-btn"
+              aria-label="꿈 기록 삭제"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+              <span class="label">삭제하기</span>
+            </button>
+
+            <button
+              @click="handleAnalysis"
+              class="action-btn analysis-btn"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sparkle-icon">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"></path>
+                <path d="M4.5 4.5L5.5 6.5L6.5 4.5L8.5 3.5L6.5 2.5L5.5 0.5L4.5 2.5L2.5 3.5L4.5 4.5Z" fill="currentColor" stroke="none" class="twinkle"></path>
+                <path d="M19.5 19.5L20.5 21.5L21.5 19.5L23.5 18.5L21.5 17.5L20.5 15.5L19.5 17.5L17.5 18.5L19.5 19.5Z" fill="currentColor" stroke="none" class="twinkle delay-1"></path>
+              </svg>
+              <span class="label">AI 꿈해몽</span>
+            </button>
+          </div>
+        </transition>
+      </div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.view-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.write-card {
+  background: white;
+  border-radius: 40px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 700px;
+  min-height: 700px;
+  box-shadow: 0 20px 60px rgba(100, 100, 200, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* 데스크탑에서 가로 배치 */
+@media (min-width: 768px) {
+  .write-card {
+    flex-direction: row;
+    max-width: 900px;
+    padding-right: 1.5rem; /* 버튼 영역 확보 */
+  }
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  border-top: 1px solid #eee;
+  /* gap: 1.5rem; */
+}
+
+.emotion-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  background: #fff;
+  border-radius: 20px;
+  margin-top: 1rem;
+}
+
+.current-emotion-display {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 모바일에서 emotion display 크기 축소 */
+@media (max-width: 767px) {
+  .current-emotion-display {
+    height: 60px;
+  }
+  
+  .main-emoji {
+    font-size: 2.5rem !important;
+  }
+  
+  .main-label {
+    font-size: 0.8rem !important;
+  }
+}
+
+.emoji-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.main-emoji {
+  font-size: 3rem;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+  animation: bounce 2s infinite ease-in-out;
+}
+
+.main-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #555;
+}
+
+.emotion-label {
+  color: #555;
+  font-weight: 700;
+}
+
+.slider-container {
+  width: 100%;
+  position: relative;
+  height: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+@media (max-width: 767px) {
+  .slider-container {
+    max-width: 280px;
+    margin-bottom: 10px;
+  }
+}
+
+.emotion-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 5px;
+  background: #e0e0e0;
+  background-image: linear-gradient(90deg, #ffc8dd, #cdb4db);
+  background-repeat: no-repeat;
+  outline: none;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.emotion-range:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.emotion-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid #cdb4db;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+
+.emotion-range:not(:disabled)::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.emotion-range::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid #cdb4db;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.2s;
+}
+
+.range-marks {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  right: 10px;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mark {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.mark.active {
+  background: #cdb4db;
+}
+
+.scale-enter-active,
+.scale-leave-active {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.scale-enter-from,
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.5);
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.button-group {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .side-actions {
+    flex-direction: column;
+    width: 120px;
+    justify-content: flex-start; /* flex-end -> flex-start */
+    border-top: none;
+    border-left: 1px solid #eee;
+    padding-left: 1.5rem;
+  }
+
+  .emotion-selector {
+    margin-top: 0;
+    margin-bottom: 2rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    margin-top: auto; /* 버튼들을 아래로 밀어줌 */
+  }
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 0.5rem;
+}
+
+.back-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  padding: 5px;
+}
+
+.card-header h3 {
+  font-size: 1.2rem;
+  color: #333;
+  font-weight: 700;
+  font-family: 'Nunito', sans-serif;
+}
+
+.spacer {
+  width: 24px;
+}
+
+.divider {
+  width: 100%;
+  border-top: 2px dashed #ce93d8;
+  margin: 1rem 0;
+  opacity: 0.6;
+}
+
+.form-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.title-input {
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  outline: none;
+  color: #333;
+  width: 100%;
+  padding: 0.5rem 0;
+  background: transparent;
+}
+
+.title-input:disabled {
+  color: #666;
+  cursor: default;
+}
+
+.title-input::placeholder {
+  color: #ccc;
+}
+
+.content-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 1.2rem;
+  line-height: 1.6;
+  color: #555;
+  font-family: 'Nunito', sans-serif;
+  padding-top: 0.5rem;
+  background: transparent;
+  min-height: 300px;
+  scrollbar-width: thin;
+  scrollbar-color: #cdb4db transparent;
+}
+
+.content-input::-webkit-scrollbar {
+  width: 4px;
+}
+
+.content-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.content-input::-webkit-scrollbar-thumb {
+  background-color: #cdb4db;
+  border-radius: 4px;
+  border: none;
+}
+
+.content-input::-webkit-scrollbar-thumb:hover {
+  background-color: #b39ddb;
+}
+
+@media (max-width: 767px) {
+  .content-input {
+    font-size: 1.1rem;
+    min-height: 327px;
+  }
+}
+
+.content-input:disabled {
+  color: #666;
+  cursor: default;
+}
+
+/* 버튼 스타일 */
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  height: 100px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.action-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(0,0,0,0.15);
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+  color: black;
+}
+
+.edit-btn {
+  background: #f0f0f0;
+  color: #555;
+}
+
+.delete-btn {
+  background: transparent;
+  color: #b0bec5;
+  border: 1px solid #eceff1;
+}
+
+.analysis-btn {
+  background: linear-gradient(135deg, #ab47bc, #1a237e);
+  color: #ffe082;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 224, 130, 0.3);
+}
+
+/* 반짝이는 효과 */
+.analysis-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 224, 130, 0.4), transparent);
+  animation: shine 3s infinite;
+}
+
+.sparkle-icon {
+  filter: drop-shadow(0 0 5px rgba(255, 224, 130, 0.8));
+}
+
+.twinkle {
+  animation: twinkle 2s infinite ease-in-out;
+  transform-origin: center;
+}
+
+.delay-1 {
+  animation-delay: 1s;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  20% { left: 100%; }
+  100% { left: 100%; }
+}
+
+@keyframes twinkle {
+  0%, 100% { transform: scale(0.5); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 1; }
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+}
+
+.label {
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* 모바일에서의 버튼 조정 */
+@media (max-width: 767px) {
+  .button-group {
+    display: flex;
+    flex-direction: row;
+    gap: 0.8rem;
+    align-items: stretch;
+  }
+
+  /* 기본 버튼 스타일 */
+  .action-btn {
+    height: 56px;
+    flex-direction: row;
+    padding: 0;
+    justify-content: center;
+    align-items: center;
+    border-radius: 16px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+
+  /* 수정, 삭제 버튼: 아이콘만 표시 */
+  .edit-btn, 
+  .delete-btn {
+    flex: 0 0 56px; /* 정사각형 형태 */
+    width: 56px;
+  }
+  
+  .edit-btn .label,
+  .delete-btn .label {
+    display: none;
+  }
+
+  /* 꿈 분석 버튼: 남은 공간 차지 */
+  .analysis-btn {
+    flex: 1;
+    padding: 0 1rem;
+    gap: 0.5rem;
+  }
+
+  .save-btn {
+    flex: 1;
+    padding: 0 1rem;
+    gap: 0.5rem;
+  }
+
+  .icon {
+    font-size: 1.2rem;
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: all 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+</style>
+

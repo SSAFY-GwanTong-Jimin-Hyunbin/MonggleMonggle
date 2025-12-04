@@ -1,0 +1,267 @@
+@font-face {
+  font-family: 'ThinRounded';
+  src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2511-1@1.0/ThinDungGeunMo.woff2') format('woff2');
+  font-weight: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-main: 'ThinRounded', sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  position: relative;
+}
+
+body,
+html,
+#app,
+input,
+textarea,
+button,
+select {
+  font-family: var(--font-main) !important;
+}
+
+/* 공통 카드 스타일 */
+.common-card {
+  background: white;
+  border-radius: 30px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(100, 100, 200, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 공통 헤더/타이틀 스타일 */
+.page-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #333;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #CDB4DB, #FFC8DD, #A2D2FF);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.page-subtitle {
+  color: #999;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* 공통 폼 스타일 */
+.common-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* 공통 입력 필드 스타일 */
+.input-group {
+  width: 100%;
+}
+
+.auth-input, .custom-input {
+  width: 100%;
+  padding: 1rem;
+  border: 2px solid #F0F0F0;
+  border-radius: 15px;
+  font-size: 1rem;
+  color: #333;
+  transition: all 0.2s;
+  outline: none;
+  background: #FAFAFA;
+  font-weight: 700;
+}
+
+.auth-input:focus, .custom-input:focus {
+  border-color: #CDB4DB;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(205, 180, 219, 0.1);
+}
+
+.auth-input::placeholder, .custom-input::placeholder {
+  color: #CCC;
+}
+
+/* 라벨 스타일 */
+.input-label {
+  display: block;
+  text-align: left;
+  margin-bottom: 0.5rem;
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  color: #999;
+  font-weight: 600;
+}
+
+/* Date Input Styling */
+.date-input {
+  position: relative;
+}
+
+.date-input:required:invalid::-webkit-datetime-edit {
+  color: transparent;
+  background: transparent;
+}
+.date-input:focus::-webkit-datetime-edit {
+  color: transparent;
+  background: transparent;
+}
+.date-input:required:invalid::-webkit-datetime-edit-fields-wrapper {
+  background: transparent;
+}
+.date-input:required:invalid::-webkit-datetime-edit-text,
+.date-input:required:invalid::-webkit-datetime-edit-month-field,
+.date-input:required:invalid::-webkit-datetime-edit-day-field,
+.date-input:required:invalid::-webkit-datetime-edit-year-field {
+  background: transparent;
+  color: transparent;
+}
+.date-input:required:valid::-webkit-datetime-edit {
+  color: #333;
+}
+.date-input::before {
+  content: attr(data-placeholder);
+  width: 100%;
+  position: absolute;
+  color: #CCC;
+  background: transparent;
+  pointer-events: none;
+  left: 1rem;
+  z-index: 1;
+}
+.date-input:required:valid::before {
+  display: none;
+}
+.date-input:focus:invalid::before {
+  display: block;
+}
+
+/* Radio Group */
+.radio-group {
+  display: flex;
+  justify-content: center;
+  padding: 0.5rem 0.5rem;
+  width: 100%;
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  width: 50%;
+}
+
+/* 커스텀 라디오 버튼 스타일 */
+.custom-radio {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 2px solid #DDD;
+  border-radius: 50%;
+  margin: 0;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  background-color: #FAFAFA;
+}
+
+.custom-radio:checked {
+  border-color: transparent;
+  background: #CDB4DB;
+}
+
+.custom-radio:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.5rem;
+  height: 0.5rem;
+  background-color: white;
+  border-radius: 50%;
+}
+
+.custom-radio:hover {
+  border-color: #CDB4DB;
+}
+
+.radio-label-text, .radio-text {
+  color: #666;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* 버튼 공통 스타일 */
+.submit-btn {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #CDB4DB, #FFC8DD, #A2D2FF);
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 10px 20px rgba(162, 210, 255, 0.3);
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 30px rgba(162, 210, 255, 0.4);
+}
+
+/* 에러 텍스트 */
+.error-text {
+  margin-top: 0.4rem;
+  margin-left: 0.5rem;
+  font-size: 0.85rem;
+  color: #fe6996;
+  font-weight: 600;
+}
+
+/* 푸터 액션 링크 스타일 */
+.footer-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  font-size: 0.9rem;
+  color: #999;
+}
+
+.withdraw-text, .back-text {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.withdraw-text:hover {
+  color: #FF8A80;
+  text-decoration: underline;
+}
+
+.back-text:hover {
+  color: #A2D2FF;
+  text-decoration: underline;
+}
