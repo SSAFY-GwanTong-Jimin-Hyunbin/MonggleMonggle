@@ -10,8 +10,10 @@ except ImportError:
     print("오류: llama_cpp 라이브러리가 설치되지 않았습니다. 'pip install llama-cpp-python'을 실행하세요.", file=sys.stderr)
     sys.exit(1)
 
-# 모델 경로 설정
-GGUF_DIR = Path("./AI_API/models/")
+# 모델 경로 설정 (현재 파일 위치 기준으로 경로 계산 - Windows/Mac/Linux 모두 호환)
+CURRENT_DIR = Path(__file__).resolve().parent  # services 폴더
+AI_API_DIR = CURRENT_DIR.parent               # AI_API 폴더
+GGUF_DIR = AI_API_DIR / "models"
 MODEL_FILES = {
     "q4_k_m": GGUF_DIR / "gemma-2-9b-it-dream-q4_k_m.gguf",
 }
