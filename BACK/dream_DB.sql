@@ -100,3 +100,5 @@ INSERT INTO `emotion_scores` (`emotion_id`, `emotion_name`, `score`) VALUES
 (3, '평범', 3),
 (4, '불안', 2),
 (5, '슬픔', 1);
+
+CREATE TABLE `notice`
