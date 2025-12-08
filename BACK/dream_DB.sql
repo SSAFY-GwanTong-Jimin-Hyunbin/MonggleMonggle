@@ -113,8 +113,8 @@ CREATE TABLE `notices` (
     `content`       TEXT            NOT NULL COMMENT '본문',
     `view_count`    INT             NOT NULL DEFAULT 0 COMMENT '조회수',
     `created_date`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일자',
-    `update_date`   DATETIME        NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일자',
-    `delete_date`   DATETIME        NULL COMMENT '삭제 일자(soft delete)',
+    `updated_date`   DATETIME        NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일자',
+    `deleted_date`   DATETIME        NULL COMMENT '삭제 일자(soft delete)',
     PRIMARY KEY (`notice_id`),
     FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) COMMENT = '공지사항'
@@ -126,7 +126,7 @@ CREATE TABLE `comments` (
     `user_id`        BIGINT          NOT NULL COMMENT '작성자 ID',
     `content`        TEXT            NOT NULL COMMENT '댓글 내용',
     `created_date`   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일자',
-    `delete_date`    DATETIME        NULL COMMENT '삭제 일자(soft delete)',
+    `deleted_date`    DATETIME        NULL COMMENT '삭제 일자(soft delete)',
     PRIMARY KEY (`comment_id`),
     FOREIGN KEY (`notice_id`) REFERENCES `notices` (`notice_id`) ON DELETE CASCADE,
     FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
