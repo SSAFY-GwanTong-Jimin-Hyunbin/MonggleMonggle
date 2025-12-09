@@ -17,23 +17,23 @@
       </button>
     </div>
 
-    <div class="monthly-analysis-content">
+    <div class="month-selector-section">
+      <button @click="changeMonth(-1)" class="month-nav-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <div class="current-month">{{ currentYear }}년 {{ currentMonth }}월</div>
+      <button @click="changeMonth(1)" class="month-nav-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <div class="monthly-analysis-content" v-if="!isLockedMonth">
       <!-- 왼쪽 컬럼 -->
       <div class="left-column">
-        <!-- 월 선택 -->
-        <div class="month-selector-section">
-          <button @click="changeMonth(-1)" class="month-nav-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="15 18 9 12 15 6"></polyline>
-            </svg>
-          </button>
-          <div class="current-month">{{ currentYear }}년 {{ currentMonth }}월</div>
-          <button @click="changeMonth(1)" class="month-nav-btn">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="9 18 15 12 9 6"></polyline>
-            </svg>
-          </button>
-        </div>
 
         <!-- 통계 카드 -->
         <div class="stats-grid">
@@ -188,11 +188,19 @@
         </div>
       </div>
     </div>
+    <div v-else class="lock-card">
+      <div class="lock-text">
+        <div class="lock-caption">
+          <div class="caption-main">이 달의 꿈 기록은 {{ nextAvailableText }}에 열려요</div>
+          <div class="caption-sub">조금만 더 기다려 주세요 ✨</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useDreamEntriesStore } from "../stores/dreamEntriesStore";
@@ -204,8 +212,26 @@ const dreamEntriesStore = useDreamEntriesStore();
 const memoStore = useMonthlyMemoStore();
 const { postedDates } = storeToRefs(dreamEntriesStore);
 
-const currentYear = ref(new Date().getFullYear());
-const currentMonth = ref(new Date().getMonth() + 1);
+const now = ref(new Date());
+let nowTimer = null;
+
+const lastMonthDate = computed(() => new Date(now.value.getFullYear(), now.value.getMonth() - 1, 1));
+const currentYear = ref(lastMonthDate.value.getFullYear());
+const currentMonth = ref(lastMonthDate.value.getMonth() + 1);
+
+const isLockedMonth = computed(() => {
+  const selectedKey = currentYear.value * 12 + currentMonth.value;
+  const currentKey = now.value.getFullYear() * 12 + (now.value.getMonth() + 1);
+  return selectedKey >= currentKey;
+});
+
+const nextAvailableText = computed(() => {
+  // 선택된 월 기준 다음 달 1일을 안내
+  const nextMonthDate = new Date(currentYear.value, currentMonth.value, 1);
+  const y = nextMonthDate.getFullYear();
+  const m = String(nextMonthDate.getMonth() + 1).padStart(2, "0");
+  return `${y}년 ${m}월 01일`;
+});
 
 // 메모 관련 상태
 const monthlyMemos = ref([]);
@@ -253,6 +279,15 @@ function updateRouteQuery() {
 onMounted(() => {
   syncFromRoute();
   updateRouteQuery();
+  nowTimer = setInterval(() => {
+    now.value = new Date();
+  }, 60 * 1000);
+});
+
+onUnmounted(() => {
+  if (nowTimer) {
+    clearInterval(nowTimer);
+  }
 });
 
 watch(
@@ -264,6 +299,8 @@ watch(
 
 // 해당 월의 꿈 필터링
 const monthlyDreams = computed(() => {
+  if (isLockedMonth.value) return [];
+
   const dreams = [];
   const yearMonth = `${currentYear.value}-${String(currentMonth.value).padStart(2, "0")}`;
 
@@ -574,6 +611,7 @@ watch([currentYear, currentMonth], loadMonthlyMemos);
   padding: 1rem;
   background: linear-gradient(135deg, rgba(205, 180, 219, 0.15), rgba(255, 200, 221, 0.15), rgba(162, 210, 255, 0.15));
   border-radius: 20px;
+  margin-bottom: 1.5rem;
 }
 
 .month-nav-btn {
@@ -599,7 +637,7 @@ watch([currentYear, currentMonth], loadMonthlyMemos);
 
 .current-month {
   font-family: "Dongle", sans-serif;
-  font-size: 2rem;
+  font-size: 3rem;
   font-weight: 700;
   color: #4c2b7b;
   min-width: 180px;
@@ -1103,6 +1141,65 @@ watch([currentYear, currentMonth], loadMonthlyMemos);
   box-shadow: 0 4px 10px rgba(205, 180, 219, 0.15);
 }
 
+.lock-card {
+  margin: 1.2rem auto 0;
+  padding:11.4rem 2.2rem;
+  border-radius: 32px;
+  border: 1px solid rgba(205, 180, 219, 0.32);
+  background: radial-gradient(circle at 18% 18%, rgba(255, 200, 221, 0.22), transparent 40%),
+    radial-gradient(circle at 82% 32%, rgba(162, 210, 255, 0.22), transparent 45%),
+    linear-gradient(135deg, rgba(205, 180, 219, 0.2), rgba(255, 200, 221, 0.18), rgba(162, 210, 255, 0.18));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.6rem;
+  box-shadow: 0 18px 40px rgba(205, 180, 219, 0.24);
+  text-align: center;
+}
+
+.lock-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.lock-caption {
+  display: flex;
+  flex-direction: column;
+  gap: 1.45rem;
+  align-items: center;
+}
+
+.lock-caption .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #7a5fa3;
+  font-weight: 800;
+  font-size: 0.92rem;
+  box-shadow: 0 12px 24px rgba(205, 180, 219, 0.24);
+}
+
+.lock-caption .caption-main {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #6f4d95;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 0.8rem 1.1rem;
+  border-radius: 16px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 10px 24px rgba(205, 180, 219, 0.18);
+}
+
+.lock-caption .caption-sub {
+  font-size: 0.98rem;
+  color: #8a6aa8;
+  font-weight: 700;
+}
+
 .dream-item {
   display: flex;
   align-items: center;
@@ -1138,9 +1235,10 @@ watch([currentYear, currentMonth], loadMonthlyMemos);
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.5rem;
   color: white;
   flex-shrink: 0;
+  font-family: "Dongle", sans-serif;
 }
 
 .dream-date-badge.color-purple {
