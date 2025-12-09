@@ -65,44 +65,34 @@
           </div>
         </div>
 
-        <!-- 키워드 클라우드 -->
-        <div class="section-card">
-          <h3 class="section-title">
-            <span class="title-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z" />
-              </svg>
-            </span>
-            이번 달 키워드
-          </h3>
-          <div class="keyword-cloud">
-            <span
-              v-for="keyword in keywords"
-              :key="keyword.text"
-              class="keyword-tag"
-              :style="{
-                fontSize: keyword.size + 'rem',
-              }"
-              :class="keyword.colorClass"
-            >
-              {{ keyword.text }}
-            </span>
-          </div>
-        </div>
-
         <!-- 꿈 목록 -->
         <div class="section-card">
-          <h3 class="section-title">
-            <span class="title-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-              </svg>
-            </span>
-            이번 달 꿈 목록
-          </h3>
+          <div class="dream-header">
+            <h3 class="section-title">
+              <span class="title-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                </svg>
+              </span>
+              이번 달 꿈 목록
+            </h3>
+            <div v-if="totalDreamPages > 1" class="dream-pagination">
+              <button class="page-btn icon" @click="prevDreamPage" :disabled="currentDreamPage === 1">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <span class="page-indicator">{{ currentDreamPage }} / {{ totalDreamPages }}</span>
+              <button class="page-btn icon" @click="nextDreamPage" :disabled="currentDreamPage === totalDreamPages">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="9 6 15 12 9 18"></polyline>
+                </svg>
+              </button>
+            </div>
+          </div>
           <div v-if="monthlyDreams.length > 0" class="dream-list">
-            <div v-for="dream in monthlyDreams" :key="dream.date" class="dream-item" @click="goToDream(dream.date)">
+            <div v-for="dream in visibleDreams" :key="dream.date" class="dream-item" @click="goToDream(dream.date)">
               <div class="dream-date-badge" :class="dream.colorClass">{{ dream.day }}일</div>
               <div class="dream-info">
                 <h4>{{ dream.title }}</h4>
@@ -277,20 +267,47 @@ const monthlyDreams = computed(() => {
   const dreams = [];
   const yearMonth = `${currentYear.value}-${String(currentMonth.value).padStart(2, "0")}`;
 
-  Object.entries(postedDates.value).forEach(([dateKey, dream], index) => {
+  const entries = postedDates.value ? Object.entries(postedDates.value) : [];
+
+  entries.forEach(([dateKey, dream], index) => {
     if (dateKey.startsWith(yearMonth)) {
       const day = parseInt(dateKey.split("-")[2]);
+      const title = dream?.title || "";
+      const content = dream?.content || "";
       dreams.push({
         date: dateKey,
         day: day,
-        title: dream.title,
-        preview: dream.content.substring(0, 50) + (dream.content.length > 50 ? "..." : ""),
+        title,
+        preview: content.substring(0, 50) + (content.length > 50 ? "..." : ""),
         colorClass: colorClasses[index % 3],
       });
     }
   });
 
-  return dreams.sort((a, b) => b.day - a.day);
+  return dreams.sort((a, b) => a.day - b.day);
+});
+
+// 꿈 목록 페이지네이션 (4개씩)
+const dreamPageSize = 4;
+const currentDreamPage = ref(1);
+const totalDreamPages = computed(() =>
+  Math.max(1, Math.ceil(monthlyDreams.value.length / dreamPageSize))
+);
+const visibleDreams = computed(() => {
+  const start = (currentDreamPage.value - 1) * dreamPageSize;
+  return monthlyDreams.value.slice(start, start + dreamPageSize);
+});
+
+function nextDreamPage() {
+  if (currentDreamPage.value < totalDreamPages.value) currentDreamPage.value += 1;
+}
+
+function prevDreamPage() {
+  if (currentDreamPage.value > 1) currentDreamPage.value -= 1;
+}
+
+watch(monthlyDreams, () => {
+  currentDreamPage.value = 1;
 });
 
 // 통계 계산 (실제 최장 연속 기록일을 계산)
@@ -318,18 +335,6 @@ const monthlyStats = computed(() => {
     streak: `${longest}일`,
   };
 });
-
-// 키워드
-const keywords = [
-  { text: "하늘", size: 1.8, colorClass: "color-purple" },
-  { text: "바다", size: 1.5, colorClass: "color-blue" },
-  { text: "여행", size: 2, colorClass: "color-pink" },
-  { text: "친구", size: 1.3, colorClass: "color-purple" },
-  { text: "집", size: 1.6, colorClass: "color-pink" },
-  { text: "학교", size: 1.4, colorClass: "color-blue" },
-  { text: "비행", size: 1.7, colorClass: "color-purple" },
-  { text: "음악", size: 1.2, colorClass: "color-pink" },
-];
 
 function handleBack() {
   router.push({ name: "calendar" });
@@ -722,41 +727,6 @@ watch([currentYear, currentMonth], loadMonthlyMemos);
   stroke: #8a6aa8;
 }
 
-.keyword-cloud {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  justify-content: center;
-  padding: 1.5rem 0;
-}
-
-.keyword-tag {
-  font-weight: 700;
-  transition: all 0.2s;
-  cursor: default;
-  padding: 0.25rem 0.5rem;
-  border-radius: 8px;
-}
-
-.keyword-tag:hover {
-  transform: scale(1.1);
-}
-
-.keyword-tag.color-purple {
-  color: #b799c7;
-  background: rgba(205, 180, 219, 0.2);
-}
-
-.keyword-tag.color-pink {
-  color: #e091a3;
-  background: rgba(255, 200, 221, 0.3);
-}
-
-.keyword-tag.color-blue {
-  color: #7ba3d0;
-  background: rgba(162, 210, 255, 0.3);
-}
-
 /* 메모 섹션 */
 .memo-section {
   padding-bottom: 1rem;
@@ -1081,6 +1051,56 @@ watch([currentYear, currentMonth], loadMonthlyMemos);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.dream-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dream-pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 1rem 0;
+}
+
+.page-btn {
+  padding: 0.35rem 0.45rem;
+  border: 1px solid rgba(205, 180, 219, 0.4);
+  border-radius: 10px;
+  background: white;
+  color: #8a6aa8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.page-btn.icon svg {
+  display: block;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: rgba(205, 180, 219, 0.22);
+  color: #754f9b;
+  transform: translateY(-1px);
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.page-indicator {
+  font-family: "Dongle", sans-serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #6a4a88;
+  padding: 0rem 0.45rem;
+  border-radius: 12px;
+  background: rgba(205, 180, 219, 0.18);
+  box-shadow: 0 4px 10px rgba(205, 180, 219, 0.15);
 }
 
 .dream-item {
