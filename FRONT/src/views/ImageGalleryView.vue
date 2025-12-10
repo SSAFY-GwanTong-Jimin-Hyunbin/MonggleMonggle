@@ -570,8 +570,6 @@ async function syncFromServer() {
 
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Dongle:wght@300;400;700&display=swap");
 
 .gallery-card {
   background: white;
@@ -832,6 +830,7 @@ async function syncFromServer() {
   color: #333;
   font-weight: 700;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
