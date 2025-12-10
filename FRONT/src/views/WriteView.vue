@@ -31,6 +31,13 @@ async function restoreFromQuery() {
   const [year, month, day] = String(dateStr).split("-").map(Number);
   const restoredDate = new Date(year, month - 1, day);
 
+  // URL 조작으로 오늘이 아닌 날짜로 접근하는 경우 차단
+  if (!isTodayDate(restoredDate)) {
+    alert("꿈 일기는 오늘 날짜에만 작성할 수 있어요.");
+    router.replace({ name: "calendar" });
+    return;
+  }
+
   // 이미 선택된 날짜와 다를 때만 갱신
   const currentKey = selectedDate.value ? formatDateKey(selectedDate.value) : null;
   if (currentKey !== dateStr) {
@@ -40,6 +47,13 @@ async function restoreFromQuery() {
 
 onMounted(async () => {
   await restoreFromQuery();
+
+  // 선택된 날짜가 오늘이 아닌 상태라면 접근 차단
+  if (selectedDate.value && !isTodayDate(selectedDate.value)) {
+    alert("꿈 일기는 오늘 날짜에만 작성할 수 있어요.");
+    router.replace({ name: "calendar" });
+    return;
+  }
 
   // 날짜가 여전히 없으면 캘린더로 이동
   if (!selectedDate.value && !route.query.date) {
@@ -111,6 +125,16 @@ function formatDateKey(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function isTodayDate(date) {
+  if (!date) return false;
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
 }
 </script>
 
