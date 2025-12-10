@@ -8,7 +8,7 @@ const router = useRouter();
 const route = useRoute();
 const dreamEntriesStore = useDreamEntriesStore();
 const { dreamTitle, dreamContent, formattedSelectedDate, showAnalysisOption, selectedDate, selectedEmotion, hasExistingResult, canReinterpret, remainingReinterprets, posts } = storeToRefs(dreamEntriesStore);
-const { saveDream, deleteDream, setEmotion, enableEditMode, resetWriteState, setSelectedDateWithResult, fetchDreamsByMonth } = dreamEntriesStore;
+const { saveDream, deleteDream, setEmotion, enableEditMode, resetWriteState, setSelectedDateWithResult, fetchDreamsByMonth, validateRequiredFields } = dreamEntriesStore;
 
 const emotions = [
   { value: 1, label: "매우 나쁨", icon: "😫" },
@@ -84,8 +84,9 @@ function handleBack() {
 }
 
 function handleSave() {
-  if (!dreamTitle.value?.trim() || !dreamContent.value?.trim()) {
-    alert("제목과 내용을 모두 입력해주세요.");
+  const validation = validateRequiredFields();
+  if (!validation.valid) {
+    alert(validation.message);
     return;
   }
 
