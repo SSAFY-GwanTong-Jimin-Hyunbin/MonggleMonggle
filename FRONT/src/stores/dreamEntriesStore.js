@@ -121,7 +121,9 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
     const dateKey = formatDateKey(date);
     const existingPost = posts.value[dateKey];
 
-    if (existingPost?.dreamId) {
+    // 해몽 결과가 없다고 표시된 경우에는 조회 요청을 보내지 않아 404를 피한다.
+    // (달력 목록이나 해몽 완료 시 hasResult가 true로 동기화되므로 필요한 경우에만 호출)
+    if (existingPost?.dreamId && existingPost?.hasResult) {
       const result = await fetchDreamResult(existingPost.dreamId);
       if (result) {
         hasExistingResult.value = true;
