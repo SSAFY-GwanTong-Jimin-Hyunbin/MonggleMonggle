@@ -173,6 +173,7 @@ import { ref, nextTick, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useDreamEntriesStore } from "../stores/dreamEntriesStore";
+import { getColorHex } from "../constants/luckyColors";
 import { useGalleryStore } from "../stores/galleryStore";
 import { fortuneService } from "../services/fortuneService";
 import { dreamResultService } from "../services/dreamResultService";
@@ -196,29 +197,6 @@ const displayLuckyColor = computed(() => {
   }
   return currentLuckyColor.value;
 });
-
-// 색상 이름을 HEX 코드로 변환
-function getColorHex(colorName) {
-  const colorMap = {
-    빨간색: "#FF4444",
-    주황색: "#FF8C00",
-    노란색: "#FFD700",
-    초록색: "#32CD32",
-    파란색: "#4169E1",
-    남색: "#191970",
-    보라색: "#9370DB",
-    분홍색: "#FFB6C1",
-    하늘색: "#87CEEB",
-    청록색: "#40E0D0",
-    갈색: "#8B4513",
-    회색: "#808080",
-    검정색: "#333333",
-    흰색: "#FFFFFF",
-    금색: "#FFD700",
-    은색: "#C0C0C0",
-  };
-  return colorMap[colorName] || "#CDB4DB";
-}
 
 // URL에서 날짜 복원 및 새로고침 시 결과 복구
 onMounted(async () => {
