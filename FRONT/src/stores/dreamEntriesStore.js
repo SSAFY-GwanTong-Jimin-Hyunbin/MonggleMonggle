@@ -95,17 +95,17 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
       if (result) {
         hasExistingResult.value = true;
         // 분석 결과도 저장
-      analysisResult.value = {
-        dreamInterpretation: result.dreamInterpretation,
-        todayFortuneSummary: result.todayFortuneSummary,
-        luckyColor: result.luckyColor,
-        luckyColorHex: getColorHex(result.luckyColor?.name),
-        luckyItem: result.luckyItem,
-        date: dateKey,
-        dreamTitle: existingPost.title,
-        dreamContent: existingPost.content,
-        resultId: result.id,
-      };
+        analysisResult.value = {
+          dreamInterpretation: result.dreamInterpretation,
+          todayFortuneSummary: result.todayFortuneSummary,
+          luckyColor: result.luckyColor,
+          luckyColorHex: getColorHex(result.luckyColor?.name),
+          luckyItem: result.luckyItem,
+          date: dateKey,
+          dreamTitle: existingPost.title,
+          dreamContent: existingPost.content,
+          resultId: result.id,
+        };
         // 로컬 상태 업데이트 - 행운의 색상도 함께 업데이트
         posts.value[dateKey] = {
           ...existingPost,

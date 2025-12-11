@@ -4,7 +4,6 @@ import com.ssafy.finalproject.exception.ForbiddenException;
 import com.ssafy.finalproject.exception.ResourceNotFoundException;
 import com.ssafy.finalproject.model.dao.DreamsDao;
 import com.ssafy.finalproject.model.dao.DreamsResultsDao;
-import com.ssafy.finalproject.model.dao.EmotionDao;
 import com.ssafy.finalproject.model.dto.request.CreateDreamRequest;
 import com.ssafy.finalproject.model.dto.request.UpdateDreamRequest;
 import com.ssafy.finalproject.model.dto.response.DreamListResponse;
@@ -24,6 +23,7 @@ public class DreamService {
     
     private final DreamsDao dreamsDao;
     private final DreamsResultsDao dreamsResultsDao;
+    private final DreamResultService dreamResultService;
     
     // 꿈 일기 작성 (같은 날짜에 이미 꿈이 있으면 업데이트)
     public DreamResponse createDream(Long userId, CreateDreamRequest request) {
@@ -142,6 +142,9 @@ public class DreamService {
         dream.setContent(request.getContent());
         
         dreamsDao.updateDream(dream);
+        
+        // 꿈 일기 내용이 바뀌면 기존 해몽/이미지를 초기화
+        dreamResultService.deleteDreamResult(userId, dreamId);
     }
     
     // 꿈 일기 삭제
@@ -154,6 +157,8 @@ public class DreamService {
             throw new ForbiddenException("접근 권한이 없습니다.");
         }
         
+        // 꿈 일기 삭제 시 남은 해몽/이미지도 정리
+        dreamResultService.deleteDreamResult(userId, dreamId);
         dreamsDao.deleteDream(dreamId);
     }
 }

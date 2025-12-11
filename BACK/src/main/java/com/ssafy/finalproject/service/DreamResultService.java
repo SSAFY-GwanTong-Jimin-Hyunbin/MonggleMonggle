@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -22,6 +24,7 @@ public class DreamResultService {
     private final DreamsResultsDao dreamsResultsDao;
     private final DreamsDao dreamsDao;
     private final CoinService coinService;
+    private final ImageService imageService;
     
     // AI 분석 결과 저장
     public Long saveDreamResult(Long userId, Long dreamId, SaveDreamResultRequest request) {
@@ -110,6 +113,9 @@ public class DreamResultService {
         // 분석 결과 조회
         DreamResult result = dreamsResultsDao.findByDreamId(dreamId)
                 .orElseThrow(() -> new ResourceNotFoundException("분석 결과를 찾을 수 없습니다."));
+
+        // 재해몽 요청도 코인 차감 (동일 꿈 내 재분석)
+        coinService.consumeForDreamInterpretation(userId);
         
         // 해몽/운세/행운 정보 업데이트
         if (request.getDreamInterpretation() != null) {
@@ -158,7 +164,18 @@ public class DreamResultService {
             throw new ForbiddenException("접근 권한이 없습니다.");
         }
         
-        dreamsResultsDao.deleteDreamResult(dreamId);
+        // 기존 결과가 있으면 이미지부터 정리 (하드 삭제)
+        dreamsResultsDao.findByDreamId(dreamId).ifPresent(result -> {
+            if (result.getImageUrl() != null) {
+                try {
+                    imageService.deleteImage(result.getImageUrl());
+                } catch (IOException e) {
+                    throw new RuntimeException("꿈 해몽 이미지 삭제 중 오류가 발생했습니다.", e);
+                }
+            }
+            // 결과 레코드 하드 삭제
+            dreamsResultsDao.deleteDreamResult(dreamId);
+        });
     }
 }
 
