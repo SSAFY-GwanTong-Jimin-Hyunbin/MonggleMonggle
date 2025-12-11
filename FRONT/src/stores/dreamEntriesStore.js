@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useGalleryStore } from "./galleryStore";
 import { useMonthlyMemoStore } from "./monthlyMemoStore";
+import { useAuthStore } from "./authStore";
 import { getColorHex } from "../constants/luckyColors";
 import { dreamService } from "../services/dreamService";
 import { fortuneService } from "../services/fortuneService";
@@ -18,6 +19,7 @@ function formatDateKey(date) {
 }
 
 export const useDreamEntriesStore = defineStore("dreamEntries", () => {
+  const authStore = useAuthStore();
   const selectedDate = ref(null);
   const dreamTitle = ref("");
   const dreamContent = ref("");
@@ -185,8 +187,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
           title: dreamTitle.value,
           content: dreamContent.value,
           emotion: selectedEmotion.value,
-          // 기존에 해몽 결과가 있으면 그 색상 유지, 없으면 흰색
-          color: existingPost?.hasResult ? existingPost.color : "#FFFFFF",
+          color: existingPost?.hasResult ? existingPost.color : "#FFFFFF", // 기존에 해몽 결과가 있으면 그 색상 유지, 없으면 흰색
           luckyColorName: existingPost?.hasResult ? existingPost.luckyColorName : null,
           hasResult: existingPost?.hasResult ?? false,
         },
@@ -194,6 +195,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
 
       showAnalysisOption.value = true;
       persistEntries();
+
       return true;
     } catch (err) {
       error.value = err.response?.data?.message || "꿈 일기 저장에 실패했습니다.";
@@ -392,6 +394,13 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
             luckyColorNumber: result.lucky_color.number,
           };
           persistEntries();
+
+          // 코인 차감 후 최신 사용자 정보 동기화
+          try {
+            await authStore.fetchCurrentUser();
+          } catch (syncErr) {
+            console.warn("⚠️ 코인 동기화 실패:", syncErr?.message || syncErr);
+          }
         } catch (dbErr) {
           // DB 저장 실패해도 분석 결과는 표시 (이미 분석 결과가 있는 경우 등)
           console.warn("⚠️ DB 저장 실패 (이미 존재할 수 있음):", dbErr.response?.data?.message || dbErr.message);
