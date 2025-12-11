@@ -160,10 +160,6 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
     error.value = null;
 
     try {
-      const dateKey = formatDateKey(selectedDate.value);
-      const existingPost = posts.value[dateKey];
-      const hadResult = !!existingPost?.hasResult;
-
       // 로그인 상태일 때만 API 호출
       const token = localStorage.getItem("accessToken");
       if (token) {
@@ -187,6 +183,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
       }
 
       // 로컬 상태 업데이트 (해몽 전에는 흰색, 해몽 후 색상 업데이트됨)
+      const existingPost = posts.value[dateKey];
       posts.value = {
         ...posts.value,
         [dateKey]: {
@@ -194,20 +191,13 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
           title: dreamTitle.value,
           content: dreamContent.value,
           emotion: selectedEmotion.value,
-          // 수정 시 해몽 결과/이미지는 초기화되므로 흰색으로 리셋
-          color: hadResult ? "#FFFFFF" : existingPost?.color ?? "#FFFFFF",
-          luckyColorName: hadResult ? null : existingPost?.luckyColorName ?? null,
-          hasResult: hadResult ? false : existingPost?.hasResult ?? false,
-          reinterpretCount: hadResult ? 0 : existingPost?.reinterpretCount ?? 0,
+          // 기존에 해몽 결과가 있으면 그 색상 유지, 없으면 흰색
+          color: existingPost?.hasResult ? existingPost.color : "#FFFFFF",
+          luckyColorName: existingPost?.hasResult ? existingPost.luckyColorName : null,
+          hasResult: existingPost?.hasResult ?? false,
+          reinterpretCount: existingPost?.reinterpretCount ?? 0,
         },
       };
-
-      // 수정 후 로컬 해몽 상태 초기화
-      if (hadResult) {
-        hasExistingResult.value = false;
-        reinterpretCount.value = 0;
-        analysisResult.value = null;
-      }
 
       showAnalysisOption.value = true;
       persistEntries();
