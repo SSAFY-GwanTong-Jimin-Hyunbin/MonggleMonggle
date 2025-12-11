@@ -35,7 +35,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
   const analysisLoading = ref(false);
   const analysisError = ref(null);
   const analysisDate = ref(null); // 분석 요청한 날짜
-  const hasExistingResult = ref(false); // 기존 해몽 결과 존재 여부
+  const hasExistingResult = ref(false); // 기존 해몽 결과 존재 여부 
 
   function setSelectedDate(date) {
     selectedDate.value = date;
@@ -53,7 +53,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
       selectedEmotion.value = existingPost.emotion ?? null;
       currentDreamId.value = existingPost.dreamId ?? null;
       showAnalysisOption.value = true;
-      // 기존 해몽 결과 여부 및 재해몽 횟수
+      // 기존 해몽 결과 여부
       hasExistingResult.value = existingPost.hasResult ?? false;
     } else {
       resetWriteFields();

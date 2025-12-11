@@ -1,13 +1,17 @@
 <script setup>
-import { onMounted, watch } from "vue";
+import { onMounted, watch, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useDreamEntriesStore } from "../stores/dreamEntriesStore";
+import { useAuthStore } from "../stores/authStore";
 
 const router = useRouter();
 const route = useRoute();
 const dreamEntriesStore = useDreamEntriesStore();
+const authStore = useAuthStore();
+const { currentUser } = storeToRefs(authStore);
 const { dreamTitle, dreamContent, formattedSelectedDate, showAnalysisOption, selectedDate, selectedEmotion, hasExistingResult, posts } = storeToRefs(dreamEntriesStore);
+const isCoinDepleted = computed(() => (currentUser.value?.coin ?? 0) <= 0);
 const { saveDream, deleteDream, setEmotion, enableEditMode, resetWriteState, setSelectedDateWithResult, fetchDreamsByMonth, validateRequiredFields } = dreamEntriesStore;
 
 const emotions = [
@@ -108,6 +112,12 @@ function handleEdit() {
 }
 
 function handleAnalysis() {
+  // 코인 0인데 ai 해몽 버튼 클릭 햇을 때 
+  if (isCoinDepleted.value) {
+    alert("오늘 사용 가능한 AI 티켓을 모두 사용했습니다.");
+    return;
+  }
+
   // 현재 날짜를 쿼리 파라미터로 전달
   const dateKey = route.query.date || formatDateKey(selectedDate.value);
   sessionStorage.setItem("analysisRequestedDate", dateKey);
@@ -259,27 +269,24 @@ async function ensureMonthData(date) {
               </svg>
               <span class="label">삭제하기</span>
             </button>
-
-            <!-- 해몽 결과가 없을 때: AI 꿈해몽 버튼 -->
-            <button v-if="!hasExistingResult" @click="handleAnalysis" class="action-btn analysis-btn">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sparkle-icon">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"></path>
-                <path d="M4.5 4.5L5.5 6.5L6.5 4.5L8.5 3.5L6.5 2.5L5.5 0.5L4.5 2.5L2.5 3.5L4.5 4.5Z" fill="currentColor" stroke="none" class="twinkle"></path>
-                <path d="M19.5 19.5L20.5 21.5L21.5 19.5L23.5 18.5L21.5 17.5L20.5 15.5L19.5 17.5L17.5 18.5L19.5 19.5Z" fill="currentColor" stroke="none" class="twinkle delay-1"></path>
-              </svg>
-              <span class="label">AI 꿈해몽</span>
-            </button>
-
-            <!-- 해몽 결과가 있을 때: 결과 보기 버튼튼 -->
-            <template v-if="hasExistingResult">
-              <button @click="handleViewResult" class="action-btn view-result-btn" aria-label="해몽 결과 보기">
+            <!-- 해몽 결과가 있을 때: 결과 보기 버튼 -->
+              <button v-if="hasExistingResult" @click="handleViewResult" class="action-btn view-result-btn" aria-label="해몽 결과 보기">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
                 <span class="label">결과 보기</span>
               </button>
-            </template>
+              
+              <!-- 해몽 결과가 없을 때: AI 꿈해몽 버튼 v-if="!hasExistingResult" -->
+              <button  @click="handleAnalysis" class="action-btn analysis-btn" :class="{ disabled: (currentUser?.coin ?? 0) <= 0 }">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sparkle-icon">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"></path>
+                  <path d="M4.5 4.5L5.5 6.5L6.5 4.5L8.5 3.5L6.5 2.5L5.5 0.5L4.5 2.5L2.5 3.5L4.5 4.5Z" fill="currentColor" stroke="none" class="twinkle"></path>
+                  <path d="M19.5 19.5L20.5 21.5L21.5 19.5L23.5 18.5L21.5 17.5L20.5 15.5L19.5 17.5L17.5 18.5L19.5 19.5Z" fill="currentColor" stroke="none" class="twinkle delay-1"></path>
+                </svg>
+                <span class="label">AI 꿈해몽</span>
+              </button>
           </div>
         </transition>
       </div>
@@ -678,6 +685,20 @@ async function ensureMonthData(date) {
   position: relative;
   overflow: hidden;
   border: 1px solid rgba(255, 224, 130, 0.3);
+}
+
+.analysis-btn.disabled {
+  color: #8c8c8c;
+  cursor: default;
+}
+
+.analysis-btn.disabled::before {
+  display: none;
+}
+
+
+.analysis-btn.disabled .sparkle-icon {
+  opacity: 0.4;
 }
 
 /* 해몽 결과 보기 버튼 - 청록/민트 톤 */
