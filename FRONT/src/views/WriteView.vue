@@ -101,13 +101,16 @@ function handleSave() {
 }
 
 function handleDelete() {
-  if (confirm("정말로 이 꿈 기록을 삭제하시겠습니까?")) {
+  if (confirm("정말로 이 꿈 일기를 삭제하시겠습니까?")) {
     deleteDream();
     router.push({ name: "calendar" });
   }
 }
 
 function handleEdit() {
+  if(!confirm("수정하시면 기존의 꿈 해몽 결과, 꿈 이미지 등이 모두 삭제됩니다.\n정말 수정하시겠습니까?")) {
+    return;
+  }
   enableEditMode();
 }
 
