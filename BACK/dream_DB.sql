@@ -18,6 +18,7 @@ CREATE TABLE `users` (
     `created_date`  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '가입일',
     `updated_date`  DATETIME        NULL ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
     `deleted_date`  DATETIME        NULL COMMENT '삭제일시 (Soft Delete)',
+    --하루 해몽 횟수 제한 칼럼
     PRIMARY KEY (`user_id`),
     UNIQUE KEY `uk_users_login_id` (`login_id`)
 ) COMMENT = '회원 정보';
@@ -41,6 +42,7 @@ CREATE TABLE `dreams` (
     `created_date` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성일시',
     `updated_date` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정일시',
     `deleted_date` DATETIME        NULL COMMENT '삭제일시 (Soft Delete)',
+    --횟수 넣어서
     PRIMARY KEY (`dream_id`),
     FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
     FOREIGN KEY (`emotion_id`) REFERENCES `emotion_scores` (`emotion_id`)
