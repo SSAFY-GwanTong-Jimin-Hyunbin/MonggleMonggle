@@ -62,6 +62,7 @@
 
 <script setup>
 import { ref } from "vue";
+import { authService } from "../services/authService";
 
 defineEmits(["navigate-mypage", "logout"]);
 
