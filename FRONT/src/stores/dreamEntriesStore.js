@@ -20,6 +20,7 @@ function formatDateKey(date) {
 
 export const useDreamEntriesStore = defineStore("dreamEntries", () => {
   const authStore = useAuthStore();
+  const galleryStore = useGalleryStore();
   const selectedDate = ref(null);
   const dreamTitle = ref("");
   const dreamContent = ref("");
@@ -35,7 +36,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
   const analysisLoading = ref(false);
   const analysisError = ref(null);
   const analysisDate = ref(null); // 분석 요청한 날짜
-  const hasExistingResult = ref(false); // 기존 해몽 결과 존재 여부 
+  const hasExistingResult = ref(false); // 기존 해몽 결과 존재 여부
 
   function setSelectedDate(date) {
     selectedDate.value = date;
@@ -171,6 +172,13 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
           // 수정 (기존 dreamId가 있으면 업데이트)
           response = await dreamService.updateDream(existingDreamId, dreamData);
           currentDreamId.value = existingDreamId;
+
+          // 갤러리에서 해당 dreamId를 가진 항목 제거 (백엔드에서 이미지가 삭제되므로)
+          const imageToRemove = galleryStore.galleryImages.find((img) => img.dreamId === existingDreamId);
+          if (imageToRemove) {
+            galleryStore.removeFromGallery(imageToRemove.id);
+            console.log(`🗑️ 꿈 수정으로 인해 갤러리에서 이미지 제거: dreamId=${existingDreamId}`);
+          }
         } else {
           // 새로 생성
           response = await dreamService.createDream(dreamData);

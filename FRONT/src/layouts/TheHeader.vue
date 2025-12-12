@@ -3,7 +3,7 @@
     <div class="header-content">
       <!-- 네비게이션 메뉴 -->
       <nav class="nav-menu">
-      <button @click="toggleMenu" class="glass-btn menu-btn" aria-label="Menu">
+        <button @click="toggleMenu" class="glass-btn menu-btn" aria-label="Menu">
           <span class="btn-icon">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -32,16 +32,51 @@
 
       <div class="spacer"></div>
 
-      <div class="glass-btn coin-container" aria-label="AI 티켓 (해몽 가능 횟수)">
-        <span class="coin-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0-2 2 2 2 0 0 0 2 2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 2-2 2 2 0 0 0-2-2Z"></path>
-            <path d="M9 5v14"></path>
-            <path d="M15 5v14"></path>
-          </svg>
-        </span>
-        <span class="coin-label">AI 티켓</span>
-        <span class="coin-text">{{ displayCoin }}</span>
+      <div class="coin-wrapper" ref="coinWrapper">
+        <button type="button" class="glass-btn coin-container" aria-label="AI 티켓 (해몽 가능 횟수)" :aria-expanded="showCoinInfo" @click="toggleCoinInfo">
+          <span class="coin-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0-2 2 2 2 0 0 0 2 2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 2-2 2 2 0 0 0-2-2Z"></path>
+              <path d="M9 5v14"></path>
+              <path d="M15 5v14"></path>
+            </svg>
+          </span>
+          <span class="coin-label">AI 티켓</span>
+          <span class="coin-text">{{ displayCoin }}</span>
+        </button>
+
+        <transition name="popover">
+          <div v-if="showCoinInfo" class="coin-popover" role="status">
+            <div class="popover-header">
+              <span class="status-dot"></span>
+              <span>AI 티켓 안내</span>
+            </div>
+
+            <ul class="rule-list">
+              <li>
+                꿈 해몽 시
+                <strong>1개</strong>
+                차감
+              </li>
+              <li>
+                꿈 이미지 생성 시
+                <strong>2개</strong>
+                차감
+              </li>
+            </ul>
+
+            <div class="reset-info">
+              <span class="reset-label">다음 충전까지</span>
+              <span class="time-pill">{{ countdown }}</span>
+            </div>
+
+            <div class="progress">
+              <span class="progress-fill" :style="{ width: resetProgress + '%' }"></span>
+            </div>
+
+            <p class="reset-footnote">매일 자정(UTC+9)에 티켓이 새로고침돼요</p>
+          </div>
+        </transition>
       </div>
 
       <button @click="$emit('logout')" class="glass-btn logout-btn" aria-label="Logout">
@@ -69,7 +104,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { useAuthStore } from "../stores/authStore";
 
@@ -79,6 +114,11 @@ const authStore = useAuthStore();
 const { currentUser } = storeToRefs(authStore);
 
 const showMenu = ref(false);
+const showCoinInfo = ref(false);
+const coinWrapper = ref(null);
+const countdown = ref("00:00:00");
+const resetProgress = ref(0);
+let countdownTimer = null;
 
 const displayName = computed(() => {
   const name = currentUser.value?.name;
@@ -92,12 +132,69 @@ const displayCoin = computed(() => {
 });
 
 function toggleMenu() {
+  showCoinInfo.value = false;
   showMenu.value = !showMenu.value;
 }
 
 function closeMenu() {
   showMenu.value = false;
 }
+
+function toggleCoinInfo() {
+  showMenu.value = false;
+  showCoinInfo.value = !showCoinInfo.value;
+}
+
+function handleOutsideClick(event) {
+  if (!coinWrapper.value) return;
+  if (coinWrapper.value.contains(event.target)) return;
+  showCoinInfo.value = false;
+}
+
+function getKstNow() {
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60000;
+  return new Date(utcMs + 9 * 60 * 60000);
+}
+
+function updateCountdown() {
+  const nowKst = getKstNow();
+  const resetAt = new Date(nowKst);
+  resetAt.setHours(24, 0, 0, 0);
+
+  const diff = resetAt.getTime() - nowKst.getTime();
+  const startOfDay = new Date(nowKst);
+  startOfDay.setHours(0, 0, 0, 0);
+  const elapsed = nowKst.getTime() - startOfDay.getTime();
+  const total = 24 * 60 * 60 * 1000;
+
+  resetProgress.value = Math.min(100, Math.max(0, (elapsed / total) * 100));
+
+  if (diff <= 0) {
+    countdown.value = "00:00:00";
+    return;
+  }
+
+  const hours = String(Math.floor(diff / (1000 * 60 * 60))).padStart(2, "0");
+  const minutes = String(Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))).padStart(2, "0");
+  const seconds = String(Math.floor((diff % (1000 * 60)) / 1000)).padStart(2, "0");
+
+  countdown.value = `${hours}:${minutes}:${seconds}`;
+}
+
+onMounted(() => {
+  updateCountdown();
+  countdownTimer = setInterval(updateCountdown, 1000);
+  document.addEventListener("click", handleOutsideClick);
+});
+
+onBeforeUnmount(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+  document.removeEventListener("click", handleOutsideClick);
+});
 </script>
 
 <style scoped>
@@ -195,8 +292,32 @@ function closeMenu() {
   flex: 1;
 }
 
+.coin-wrapper {
+  position: relative;
+}
+
 .coin-container {
-  cursor: default;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.coin-container:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.coin-container:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 3px;
 }
 
 .coin-label {
@@ -223,6 +344,132 @@ function closeMenu() {
   font-weight: 700;
   font-size: 0.9rem;
   color: #f3e366;
+}
+
+.coin-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 260px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  border-radius: 20px;
+  padding: 0.9rem 1rem;
+  color: white;
+  z-index: 1200;
+}
+
+.coin-popover::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  right: 28px;
+  width: 14px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+  transform: rotate(45deg);
+}
+
+.popover-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: white;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.3);
+  display: inline-block;
+}
+
+.rule-list {
+  list-style: none;
+  padding: 0.65rem 0 0.4rem 0;
+  margin: 0;
+  display: grid;
+  gap: 0.25rem;
+  color: white;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.rule-list strong {
+  color: #ffe082;
+}
+
+.reset-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  gap: 0.8rem;
+}
+
+.reset-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: white;
+}
+
+.time-pill {
+  background: linear-gradient(135deg, #ab47bc, #1a237e);
+  color: #ffe082;
+  padding: 0.35rem 0.65rem;
+  border-radius: 10px;
+  font-family: "Nunito", sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  box-shadow: 0 6px 12px rgba(26, 35, 126, 0.18);
+}
+
+.progress {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+  margin-top: 0.6rem;
+}
+
+.progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ffe082, #fff);
+  transition: width 0.3s ease;
+}
+
+.reset-footnote {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.8);
+  text-align: right;
+  font-weight: 600;
+}
+
+.popover-enter-active,
+.popover-leave-active {
+  transition: opacity 0.15s ease, transform 0.2s ease;
+}
+
+.popover-enter-from,
+.popover-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 @media (max-width: 768px) {
@@ -253,6 +500,11 @@ function closeMenu() {
     right: auto;
     min-width: 180px;
     max-width: calc(100vw - 2rem);
+  }
+
+  .coin-popover {
+    width: 230px;
+    right: -30px;
   }
 }
 
