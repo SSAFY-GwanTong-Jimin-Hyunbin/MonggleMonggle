@@ -46,25 +46,12 @@
       <!-- 왼쪽 컬럼 -->
       <div class="left-column">
         <MonthlyStatsCard :total-dreams="monthlyStats.totalDreams" :streak="monthlyStats.streak" />
-        <MonthlyDreamList
-          :dreams="visibleDreams"
-          :current-page="currentDreamPage"
-          :total-pages="totalDreamPages"
-          @select-dream="goToDream"
-          @prev-page="prevDreamPage"
-          @next-page="nextDreamPage"
-        />
+        <MonthlyDreamList :dreams="visibleDreams" :current-page="currentDreamPage" :total-pages="totalDreamPages" @select-dream="goToDream" @prev-page="prevDreamPage" @next-page="nextDreamPage" />
       </div>
 
       <!-- 오른쪽 컬럼 -->
       <div class="right-column">
-        <MonthlyMemoSection
-          ref="memoSectionRef"
-          :memos="monthlyMemos"
-          @add-memo="handleAddMemo"
-          @edit-memo="handleEditMemo"
-          @delete-memo="handleDeleteMemo"
-        />
+        <MonthlyMemoSection ref="memoSectionRef" :memos="monthlyMemos" @add-memo="handleAddMemo" @edit-memo="handleEditMemo" @delete-memo="handleDeleteMemo" />
       </div>
     </div>
 
@@ -86,16 +73,7 @@
     </div>
 
     <!-- 월별 리포트 모달 -->
-    <MonthlyReportModal
-      :is-open="isReportOpen"
-      :year="currentYear"
-      :month="currentMonth"
-      :report="monthlyReport"
-      :is-loading="isLoadingReport"
-      :error="reportError"
-      :receiver-name="reportReceiver"
-      @close="closeReport"
-    />
+    <MonthlyReportModal ref="reportModalRef" :is-open="isReportOpen" :year="currentYear" :month="currentMonth" :is-locked="isLockedMonth" @close="closeReport" />
   </div>
 </template>
 
@@ -104,7 +82,6 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useDreamEntriesStore } from "../stores/dreamEntriesStore";
-import { useAuthStore } from "../stores/authStore";
 import { monthlyAnalysisService } from "../services/monthlyAnalysisService";
 
 // 컴포넌트 임포트
@@ -116,12 +93,11 @@ import MonthlyReportModal from "../components/monthly/MonthlyReportModal.vue";
 const route = useRoute();
 const router = useRouter();
 const dreamEntriesStore = useDreamEntriesStore();
-const authStore = useAuthStore();
 const { postedDates } = storeToRefs(dreamEntriesStore);
-const { currentUser } = storeToRefs(authStore);
 
 // 컴포넌트 ref
 const memoSectionRef = ref(null);
+const reportModalRef = ref(null);
 
 // 현재 시간 (잠금 상태 계산용)
 const now = ref(new Date());
@@ -132,12 +108,21 @@ const lastMonthDate = computed(() => new Date(now.value.getFullYear(), now.value
 const currentYear = ref(lastMonthDate.value.getFullYear());
 const currentMonth = ref(lastMonthDate.value.getMonth() + 1);
 
-// 잠금 상태 (현재 달 이후는 잠금)
+// 리포트 모달 열림 상태
+const isReportOpen = ref(false);
+
+// 메모 상태
+const monthlyMemos = ref([]);
+
 const isLockedMonth = computed(() => {
   const selectedKey = currentYear.value * 12 + currentMonth.value;
   const currentKey = now.value.getFullYear() * 12 + (now.value.getMonth() + 1);
   return selectedKey >= currentKey;
 });
+
+// 모달 컴포넌트에서 편지 상태 가져오기
+const hasReportContent = computed(() => reportModalRef.value?.hasReportContent ?? false);
+const isLetterUnread = computed(() => reportModalRef.value?.isLetterUnread ?? false);
 
 const nextAvailableText = computed(() => {
   const nextMonthDate = new Date(currentYear.value, currentMonth.value, 1);
@@ -145,28 +130,6 @@ const nextAvailableText = computed(() => {
   const m = String(nextMonthDate.getMonth() + 1).padStart(2, "0");
   return `${y}년 ${m}월 01일`;
 });
-
-// 리포트 상태
-const monthlyReport = ref("");
-const isLoadingReport = ref(false);
-const reportError = ref("");
-const isReportOpen = ref(false);
-const letterReadStatus = ref({});
-const LETTER_READ_KEY = "monthlyReportRead";
-
-const hasReportContent = computed(() => isLoadingReport.value || !!monthlyReport.value || !!reportError.value);
-const reportReceiver = computed(() => {
-  const name = currentUser.value?.name;
-  return name ? `${name} 님에게` : "나에게";
-});
-
-const isLetterUnread = computed(() => {
-  const key = currentMonthKey();
-  return !letterReadStatus.value?.[key];
-});
-
-// 메모 상태
-const monthlyMemos = ref([]);
 
 // 색상 클래스 배열
 const colorClasses = ["color-purple", "color-pink", "color-blue"];
@@ -199,22 +162,6 @@ function updateRouteQuery() {
     month: String(currentMonth.value).padStart(2, "0"),
   };
   router.replace({ name: "monthly-analysis", query });
-}
-
-function currentMonthKey() {
-  return `${currentYear.value}-${String(currentMonth.value).padStart(2, "0")}`;
-}
-
-// 편지 읽음 상태 관리
-function loadLetterReadStatus() {
-  if (typeof window === "undefined") return;
-  const saved = localStorage.getItem(LETTER_READ_KEY);
-  letterReadStatus.value = saved ? JSON.parse(saved) : {};
-}
-
-function persistLetterReadStatus() {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(LETTER_READ_KEY, JSON.stringify(letterReadStatus.value));
 }
 
 // 해당 월의 꿈 필터링
@@ -310,9 +257,6 @@ function goToDream(dateKey) {
 function openReport() {
   if (isLockedMonth.value) return;
   isReportOpen.value = true;
-  const key = currentMonthKey();
-  letterReadStatus.value = { ...letterReadStatus.value, [key]: true };
-  persistLetterReadStatus();
 }
 
 function closeReport() {
@@ -400,43 +344,13 @@ function loadMonthlyDreams() {
   dreamEntriesStore.fetchDreamsByMonth(currentYear.value, currentMonth.value);
 }
 
-// 월간 리포트 조회
-async function fetchMonthlyReport() {
-  if (isLockedMonth.value) {
-    monthlyReport.value = "";
-    return;
-  }
-
-  isLoadingReport.value = true;
-  reportError.value = "";
-  monthlyReport.value = "";
-
-  try {
-    const response = await monthlyAnalysisService.getMonthlyAnalysis(currentYear.value, currentMonth.value);
-    monthlyReport.value = response?.monthlyReport || "";
-  } catch (err) {
-    if (err?.response?.status === 404) {
-      try {
-        const generated = await monthlyAnalysisService.generateMonthlyAnalysis(currentYear.value, currentMonth.value);
-        monthlyReport.value = generated?.monthlyReport || "";
-      } catch (genErr) {
-        reportError.value = genErr?.response?.data?.message || genErr.message || "월간 리포트를 생성하지 못했습니다.";
-        monthlyReport.value = "";
-      }
-    } else {
-      reportError.value = err?.response?.data?.message || err.message || "월간 리포트를 불러오지 못했습니다.";
-      monthlyReport.value = "";
-    }
-  } finally {
-    isLoadingReport.value = false;
-  }
-}
-
 // 라이프사이클
 onMounted(() => {
   syncFromRoute();
   updateRouteQuery();
-  loadLetterReadStatus();
+  loadMonthlyMemos();
+  loadMonthlyDreams();
+
   nowTimer = setInterval(() => {
     now.value = new Date();
   }, 60 * 1000);
@@ -455,15 +369,10 @@ watch(
   }
 );
 
-// 초기 로드 및 월 변경 시 데이터 갱신
-loadMonthlyMemos();
-loadMonthlyDreams();
-fetchMonthlyReport();
-
+// 월 변경 시 데이터 갱신
 watch([currentYear, currentMonth], () => {
   loadMonthlyMemos();
   loadMonthlyDreams();
-  fetchMonthlyReport();
 });
 </script>
 
