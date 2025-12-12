@@ -127,6 +127,7 @@
           @blur="formData.password && validation.validateConfirmPassword(formData.password, formData.confirmPassword)"
         />
         <p v-if="validation.errors.confirmPassword" class="error-text">{{ validation.errors.confirmPassword }}</p>
+        <p v-if="serverError" class="error-text">{{ serverError }}</p>
       </div>
 
       <button class="submit-btn" @click="saveUserInfo" :disabled="isLoading">
@@ -168,6 +169,7 @@ const formData = reactive({
 
 const isLoading = ref(false);
 const datePickerRef = ref(null);
+const serverError = ref("");
 
 // 오늘 날짜 (생년월일 최대값)
 const today = computed(() => {
@@ -249,6 +251,9 @@ function handleBack() {
 async function saveUserInfo() {
   const hasPasswordChange = !!formData.password;
   
+  // 서버 에러 초기화
+  serverError.value = "";
+  
   // 유효성 검사
   if (!validation.validateUpdateForm(formData, hasPasswordChange)) {
     return;
@@ -282,7 +287,8 @@ async function saveUserInfo() {
     alert('정보가 수정되었습니다.');
     router.push({ name: 'calendar' });
   } catch (error) {
-    alert(authStore.error || '정보 수정에 실패했습니다.');
+    // 서버 에러 메시지를 화면에 표시
+    serverError.value = authStore.error || '정보 수정에 실패했습니다.';
   } finally {
     isLoading.value = false;
   }
