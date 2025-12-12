@@ -42,4 +42,7 @@ public interface DreamsDao {
             @Param("userId") Long userId,
             @Param("dreamDate") java.time.LocalDate dreamDate
     );
+    
+    // 이미지가 있는 꿈 전체 조회 (갤러리용)
+    List<Dream> findDreamsWithImagesByUserId(@Param("userId") Long userId);
 }

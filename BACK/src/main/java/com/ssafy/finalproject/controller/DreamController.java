@@ -17,6 +17,7 @@ import com.ssafy.finalproject.model.dto.request.UpdateDreamRequest;
 import com.ssafy.finalproject.model.dto.response.ApiResponse;
 import com.ssafy.finalproject.model.dto.response.DreamListResponse;
 import com.ssafy.finalproject.model.dto.response.DreamResponse;
+import com.ssafy.finalproject.model.dto.response.GalleryResponse;
 import com.ssafy.finalproject.service.DreamService;
 import com.ssafy.finalproject.util.SecurityUtil;
 
@@ -81,6 +82,14 @@ public class DreamController {
         return ResponseEntity.ok(ApiResponse.builder()
                 .message("꿈 일기가 삭제되었습니다.")
                 .build());
+    }
+    
+    @Operation(summary = "2.6 이미지가 있는 꿈 전체 조회 (갤러리용)", description = "사용자의 이미지가 있는 모든 꿈과 해몽 결과를 조회합니다.")
+    @GetMapping("/gallery")
+    public ResponseEntity<GalleryResponse> getDreamsWithImages() {
+        Long userId = SecurityUtil.getCurrentUserId();
+        GalleryResponse response = dreamService.getDreamsWithImages(userId);
+        return ResponseEntity.ok(response);
     }
 }
 
