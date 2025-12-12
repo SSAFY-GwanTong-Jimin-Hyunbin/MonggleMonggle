@@ -510,23 +510,35 @@ async function syncFromServer() {
   syncing.value = true;
 
   try {
-    // 이미 갤러리에 있는 꿈 ID 목록
-    const seenDreamIds = new Set(galleryImages.value.map((img) => img.dreamId).filter(Boolean));
-
     // 백엔드에서 이미지가 있는 모든 꿈을 한 번에 조회
     const response = await dreamService.getDreamsWithImages();
 
     if (!response?.items) {
       console.log("갤러리에 표시할 이미지가 없습니다.");
+      // 서버에 이미지가 없으면 로컬 갤러리도 비우기
+      galleryStore.resetGallery();
       return;
     }
 
-    // 응답 받은 꿈들을 갤러리에 추가
-    for (const item of response.items) {
-      // 이미 갤러리에 있으면 건너뛰기
-      if (seenDreamIds.has(item.dreamId)) continue;
+    // 서버에서 받은 꿈 ID 목록 (이미지가 있는 꿈만)
+    const serverDreamIds = new Set(response.items.map((item) => item.dreamId));
 
-      // 이미지가 있는 경우만 갤러리에 추가
+    // 로컬 갤러리에서 서버에 없는 항목 제거 (이미지가 삭제된 경우)
+    const localDreamIds = galleryImages.value.map((img) => img.dreamId).filter(Boolean);
+    for (const localDreamId of localDreamIds) {
+      if (!serverDreamIds.has(localDreamId)) {
+        // 서버에 없는 항목은 로컬에서도 삭제
+        const imageToRemove = galleryImages.value.find((img) => img.dreamId === localDreamId);
+        if (imageToRemove) {
+          galleryStore.removeFromGallery(imageToRemove.id);
+          console.log(`🗑️ 서버에서 삭제된 항목 제거: dreamId=${localDreamId}`);
+        }
+      }
+    }
+
+    // 서버에서 받은 꿈들을 갤러리에 추가 또는 업데이트
+    for (const item of response.items) {
+      // 이미지가 있는 경우만 갤러리에 추가/업데이트
       if (item.imageUrl) {
         galleryStore.addToGallery({
           id: item.resultId ?? item.dreamId,
@@ -545,7 +557,6 @@ async function syncFromServer() {
           createdAt: item.createdDate || new Date().toISOString(),
           savedAt: new Date().toISOString(),
         });
-        seenDreamIds.add(item.dreamId);
       }
     }
 
