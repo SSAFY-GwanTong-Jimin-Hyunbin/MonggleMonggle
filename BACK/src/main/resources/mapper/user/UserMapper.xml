@@ -66,6 +66,15 @@
           AND (last_coin_reset_at IS NULL OR DATE(last_coin_reset_at) &lt; #{today})
     </update>
 
+    <!-- 모든 사용자 코인 리셋 (스케줄러용) -->
+    <update id="resetAllUserCoins" parameterType="map">
+        UPDATE users
+        SET coin = 5,
+            last_coin_reset_at = CURRENT_TIMESTAMP
+        WHERE deleted_date IS NULL
+          AND (last_coin_reset_at IS NULL OR DATE(last_coin_reset_at) &lt; #{today})
+    </update>
+
     <!-- 코인 차감 (잔액이 충분할 때만) -->
     <update id="consumeCoin" parameterType="map">
         UPDATE users
