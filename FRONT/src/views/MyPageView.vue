@@ -19,24 +19,20 @@
         <p v-if="validation.errors.name" class="error-text">{{ validation.errors.name }}</p>
       </div>
 
-      <!-- 생년월일 -->
+      <!-- 생년월일 (변경 불가) -->
       <div class="input-group labeled">
         <label class="input-label">생년월일</label>
-        <div class="date-input-wrapper">
+        <div class="disabled-input-wrapper" @click="showBirthDateWarning">
           <input 
             v-model="formData.birthDate" 
             type="text" 
-            placeholder="YYYY-MM-DD" 
-            class="custom-input date-input" 
-            maxlength="10" 
-            @input="formatBirthDate" 
-            @keydown="handleBirthDateKeydown"
-            @blur="validation.validateBirthDate(formData.birthDate)"
+            class="custom-input"
+            placeholder="YYYY-MM-DD"
+            disabled
           />
-          <input ref="datePickerRef" type="date" class="hidden-date-picker" @change="onDatePickerChange" :max="today" />
-          <button type="button" class="calendar-btn" @click="openDatePicker">📅</button>
+          <div class="disabled-overlay"></div>
         </div>
-        <p v-if="validation.errors.birthDate" class="error-text">{{ validation.errors.birthDate }}</p>
+        <p v-if="birthDateWarning" class="error-text">{{ birthDateWarning }}</p>
       </div>
 
       <!-- 달력 유형 (양력/음력) -->
@@ -93,13 +89,17 @@
       <!-- 아이디 (변경 불가) -->
       <div class="input-group labeled">
         <label class="input-label">아이디</label>
-        <input 
-          v-model="formData.loginId" 
-          type="text" 
-          class="custom-input"
-          placeholder="아이디"
-          disabled
-        />
+        <div class="disabled-input-wrapper" @click="showLoginIdWarning">
+          <input 
+            v-model="formData.loginId" 
+            type="text" 
+            class="custom-input"
+            placeholder="아이디"
+            disabled
+          />
+          <div class="disabled-overlay"></div>
+        </div>
+        <p v-if="loginIdWarning" class="error-text">{{ loginIdWarning }}</p>
       </div>
 
       <!-- 비밀번호 (변경 시에만 입력) -->
@@ -170,6 +170,24 @@ const formData = reactive({
 const isLoading = ref(false);
 const datePickerRef = ref(null);
 const serverError = ref("");
+const birthDateWarning = ref("");
+const loginIdWarning = ref("");
+
+// 생년월일 클릭 시 경고 메시지 표시
+function showBirthDateWarning() {
+  birthDateWarning.value = "생년월일은 변경 불가합니다.";
+  setTimeout(() => {
+    birthDateWarning.value = "";
+  }, 3000);
+}
+
+// 아이디 클릭 시 경고 메시지 표시
+function showLoginIdWarning() {
+  loginIdWarning.value = "아이디는 변경 불가합니다.";
+  setTimeout(() => {
+    loginIdWarning.value = "";
+  }, 3000);
+}
 
 // 오늘 날짜 (생년월일 최대값)
 const today = computed(() => {
@@ -377,5 +395,25 @@ onMounted(async () => {
 
 .calendar-btn:hover {
   opacity: 1;
+}
+
+/* 비활성화된 입력 필드 오버레이 */
+.disabled-input-wrapper {
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+}
+
+.disabled-input-wrapper input {
+  width: 100%;
+}
+
+.disabled-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  cursor: pointer;
 }
 </style>
