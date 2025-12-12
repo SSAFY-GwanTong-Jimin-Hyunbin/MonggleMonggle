@@ -25,6 +25,9 @@ public interface UserDao {
     // 하루 코인 리셋 (조건부)
     int resetDailyCoin(@Param("userId") Long userId, @Param("today") LocalDate today);
 
+    // 모든 사용자 코인 리셋 (스케줄러용)
+    int resetAllUserCoins(@Param("today") LocalDate today);
+
     // 코인 차감 (조건부)
     int consumeCoin(@Param("userId") Long userId, @Param("cost") int cost);
     

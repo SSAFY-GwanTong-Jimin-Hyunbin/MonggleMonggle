@@ -290,14 +290,11 @@ import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useGalleryStore } from "../stores/galleryStore";
 import { imageService } from "../services/imageService";
-import { useDreamEntriesStore } from "../stores/dreamEntriesStore";
-import { dreamResultService } from "../services/dreamResultService";
+import { dreamService } from "../services/dreamService";
 
 const router = useRouter();
 const galleryStore = useGalleryStore();
 const { galleryImages } = storeToRefs(galleryStore);
-const dreamEntriesStore = useDreamEntriesStore();
-const { posts } = storeToRefs(dreamEntriesStore);
 
 const searchQuery = ref("");
 const activeFilter = ref("all");
@@ -507,57 +504,54 @@ function openOriginalImage(image) {
   window.open(image.imageSrc, "_blank");
 }
 
-// 서버에 저장된 꿈/이미지로 갤러리 채우기 (최대 최근 6개월)
+// 서버에 저장된 이미지가 있는 꿈을 한 번에 불러오기 (갤러리용)
 async function syncFromServer() {
   if (syncing.value) return;
   syncing.value = true;
+
   try {
-    const now = new Date();
+    // 이미 갤러리에 있는 꿈 ID 목록
     const seenDreamIds = new Set(galleryImages.value.map((img) => img.dreamId).filter(Boolean));
 
-    // 최근 6개월 꿈 데이터 불러오기
-    for (let i = 0; i < 6; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const year = d.getFullYear();
-      const month = d.getMonth() + 1; // 1-12
-      try {
-        await dreamEntriesStore.fetchDreamsByMonth(year, month);
-      } catch (e) {
-        console.warn("월별 꿈 불러오기 실패:", year, month, e?.message);
+    // 백엔드에서 이미지가 있는 모든 꿈을 한 번에 조회
+    const response = await dreamService.getDreamsWithImages();
+
+    if (!response?.items) {
+      console.log("갤러리에 표시할 이미지가 없습니다.");
+      return;
+    }
+
+    // 응답 받은 꿈들을 갤러리에 추가
+    for (const item of response.items) {
+      // 이미 갤러리에 있으면 건너뛰기
+      if (seenDreamIds.has(item.dreamId)) continue;
+
+      // 이미지가 있는 경우만 갤러리에 추가
+      if (item.imageUrl) {
+        galleryStore.addToGallery({
+          id: item.resultId ?? item.dreamId,
+          dreamId: item.dreamId,
+          dreamDate: item.dreamDate,
+          title: item.title,
+          content: item.content,
+          interpretation: item.dreamInterpretation,
+          fortuneSummary: item.todayFortuneSummary,
+          luckyColor: item.luckyColor,
+          luckyItem: item.luckyItem,
+          style: "꿈 이미지",
+          caption: item.title || "꿈 이미지",
+          imageSrc: item.imageUrl,
+          mimeType: "image/png",
+          createdAt: item.createdDate || new Date().toISOString(),
+          savedAt: new Date().toISOString(),
+        });
+        seenDreamIds.add(item.dreamId);
       }
     }
 
-    // posts에 있는 dreamId로 결과 조회 후 갤러리에 채우기
-    const entries = Object.entries(posts.value || {});
-    for (const [dateKey, entry] of entries) {
-      // 해몽 결과가 없다고 표시된 경우에는 조회하지 않아 404를 방지
-      if (!entry?.dreamId || seenDreamIds.has(entry.dreamId) || !entry?.hasResult) continue;
-      try {
-        const result = await dreamEntriesStore.fetchDreamResult(entry.dreamId);
-        if (result?.imageUrl) {
-          galleryStore.addToGallery({
-            id: result.id ?? entry.dreamId,
-            dreamId: entry.dreamId,
-            dreamDate: dateKey,
-            title: entry.title,
-            content: entry.content,
-            interpretation: result.dreamInterpretation,
-            fortuneSummary: result.todayFortuneSummary,
-            luckyColor: result.luckyColor,
-            luckyItem: result.luckyItem,
-            style: result.imageStyle || "꿈 이미지",
-            caption: entry.title || "꿈 이미지",
-            imageSrc: result.imageUrl,
-            mimeType: "image/png",
-            createdAt: result.createdAt || entry.createdAt || new Date().toISOString(),
-            savedAt: new Date().toISOString(),
-          });
-          seenDreamIds.add(entry.dreamId);
-        }
-      } catch (e) {
-        console.warn("꿈 결과 불러오기 실패:", entry.dreamId, e?.message);
-      }
-    }
+    console.log(`✅ 갤러리 동기화 완료: ${response.items.length}개의 이미지를 불러왔습니다.`);
+  } catch (error) {
+    console.error("갤러리 동기화 실패:", error);
   } finally {
     syncing.value = false;
   }

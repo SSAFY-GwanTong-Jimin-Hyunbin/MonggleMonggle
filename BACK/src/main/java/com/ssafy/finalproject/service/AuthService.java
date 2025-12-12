@@ -82,6 +82,13 @@ public class AuthService {
             throw new UnauthorizedException("비밀번호가 일치하지 않습니다.");
         }
         
+        // 로그인 시 코인 리셋 체크
+        resetDailyCoinIfNeeded(user.getUserId());
+        
+        // 코인 리셋 후 다시 조회하여 최신 코인 값 가져오기
+        user = userDao.findById(user.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
+        
         // JWT 토큰 생성
         String token = jwtUtil.generateToken(user.getUserId(), user.getLoginId());
         

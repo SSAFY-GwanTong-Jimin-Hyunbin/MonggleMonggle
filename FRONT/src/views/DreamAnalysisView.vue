@@ -173,6 +173,7 @@ import { ref, nextTick, onMounted, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useDreamEntriesStore } from "../stores/dreamEntriesStore";
+import { useAuthStore } from "../stores/authStore";
 import { getColorHex } from "../constants/luckyColors";
 import { useGalleryStore } from "../stores/galleryStore";
 import { fortuneService } from "../services/fortuneService";
@@ -183,6 +184,7 @@ const router = useRouter();
 const route = useRoute();
 const dreamEntriesStore = useDreamEntriesStore();
 const galleryStore = useGalleryStore();
+const authStore = useAuthStore();
 const { currentLuckyColor, postedDates, analysisResult, analysisDate } = storeToRefs(dreamEntriesStore);
 const { setSelectedDateWithResult, fetchDreamsByMonth } = dreamEntriesStore;
 
@@ -314,7 +316,7 @@ async function generateImage() {
       style: styleInfo.apiStyle,
     });
 
-    // AI API 호출
+    // AI API 호출 (코인 차감 포함)
     const response = await fortuneService.generateDreamImage({
       dream_prompt: dreamPrompt,
       style: styleInfo.apiStyle,
@@ -352,6 +354,9 @@ async function generateImage() {
         // 자동으로 갤러리에 저장
         await saveToGallery(imageEntry, false);
       }
+
+      // 이미지 생성 성공 후 코인 정보 갱신 (UI 반영)
+      await authStore.fetchCurrentUser();
     } else {
       // 이미지 생성 실패
       generateError.value = response.message || "이미지 생성에 실패했습니다.";
