@@ -1,7 +1,7 @@
 <template>
   <div class="gallery-card">
     <div class="card-header">
-      <button @click="handleBack" class="back-btn">
+      <button @click="handleBack" class="icon-btn">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
@@ -76,7 +76,7 @@
         <div v-for="image in filteredImages" :key="image.id" class="gallery-item" @click="openImageDetail(image)">
           <!-- 실제 이미지가 있는 경우 -->
           <div v-if="image.imageSrc" class="image-container real-image">
-            <img :src="image.imageSrc" :alt="image.caption" class="gallery-image" />
+            <img :src="resolveImageSrc(image.imageSrc)" :alt="image.caption" class="gallery-image" />
             <div class="image-hover-overlay">
               <span class="hover-icon">🔍</span>
             </div>
@@ -134,8 +134,7 @@
       <div v-else class="empty-gallery">
         <span class="empty-emoji">🎨</span>
         <h3>아직 생성된 이미지가 없습니다</h3>
-        <p>꿈 시각화 페이지에서 꿈을 이미지로 만들어보세요!</p>
-        <button @click="goToVisualization" class="create-btn">✨ 이미지 생성하러 가기</button>
+        <p>캘린더에서 꿈을 기록하고 분석하면 생성된 이미지가 여기 보입니다.</p>
       </div>
     </div>
 
@@ -165,7 +164,7 @@
                   <div class="frame-outer">
                     <div class="frame-inner">
                       <div v-if="selectedImage.imageSrc" class="framed-image">
-                        <img :src="selectedImage.imageSrc" :alt="selectedImage.caption" />
+                        <img :src="resolveImageSrc(selectedImage.imageSrc)" :alt="selectedImage.caption" />
                       </div>
                       <div v-else class="framed-placeholder" :style="{ background: selectedImage.gradient }">
                         <span class="placeholder-emoji">{{ selectedImage.emoji }}</span>
@@ -291,14 +290,11 @@ import { useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { useGalleryStore } from "../stores/galleryStore";
 import { imageService } from "../services/imageService";
-import { useDreamEntriesStore } from "../stores/dreamEntriesStore";
-import { dreamResultService } from "../services/dreamResultService";
+import { dreamService } from "../services/dreamService";
 
 const router = useRouter();
 const galleryStore = useGalleryStore();
 const { galleryImages } = storeToRefs(galleryStore);
-const dreamEntriesStore = useDreamEntriesStore();
-const { posts } = storeToRefs(dreamEntriesStore);
 
 const searchQuery = ref("");
 const activeFilter = ref("all");
@@ -351,12 +347,17 @@ const totalLikes = computed(() => {
   return galleryImages.value.reduce((sum, img) => sum + (img.likes || 0), 0);
 });
 
-function handleBack() {
-  router.push({ name: "calendar" });
+// 이미지 경로를 실제 접근 가능한 URL로 정규화
+function resolveImageSrc(src) {
+  if (!src) return "";
+  if (src.startsWith("http://") || src.startsWith("https://")) return src;
+  if (src.startsWith("/")) return src;
+  // 슬래시가 없는 상대경로로 온 경우 /uploads/... 형태로 접근할 수 있게 보정
+  return `/${src}`;
 }
 
-function goToVisualization() {
-  router.push({ name: "visualization" });
+function handleBack() {
+  router.push({ name: "calendar" });
 }
 
 function formatDate(dateString) {
@@ -407,8 +408,8 @@ async function deleteImage(image) {
   }
 
   try {
-    // 서버에 저장된 이미지인 경우 백엔드에서도 삭제
-    if (image.imageSrc && image.imageSrc.startsWith("/uploads/")) {
+    // 서버에 저장된 이미지인 경우 백엔드에서도 삭제 (절대/상대 경로 모두 허용)
+    if (image.imageSrc && image.imageSrc.includes("/uploads/images/")) {
       try {
         await imageService.deleteImage(image.imageSrc);
         console.log("✅ 서버 이미지 삭제 완료");
@@ -503,56 +504,65 @@ function openOriginalImage(image) {
   window.open(image.imageSrc, "_blank");
 }
 
-// 서버에 저장된 꿈/이미지로 갤러리 채우기 (최대 최근 6개월)
+// 서버에 저장된 이미지가 있는 꿈을 한 번에 불러오기 (갤러리용)
 async function syncFromServer() {
   if (syncing.value) return;
   syncing.value = true;
+
   try {
-    const now = new Date();
-    const seenDreamIds = new Set(galleryImages.value.map((img) => img.dreamId).filter(Boolean));
+    // 백엔드에서 이미지가 있는 모든 꿈을 한 번에 조회
+    const response = await dreamService.getDreamsWithImages();
 
-    // 최근 6개월 꿈 데이터 불러오기
-    for (let i = 0; i < 6; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const year = d.getFullYear();
-      const month = d.getMonth() + 1; // 1-12
-      try {
-        await dreamEntriesStore.fetchDreamsByMonth(year, month);
-      } catch (e) {
-        console.warn("월별 꿈 불러오기 실패:", year, month, e?.message);
-      }
+    if (!response?.items) {
+      console.log("갤러리에 표시할 이미지가 없습니다.");
+      // 서버에 이미지가 없으면 로컬 갤러리도 비우기
+      galleryStore.resetGallery();
+      return;
     }
 
-    // posts에 있는 dreamId로 결과 조회 후 갤러리에 채우기
-    const entries = Object.entries(posts.value || {});
-    for (const [dateKey, entry] of entries) {
-      if (!entry?.dreamId || seenDreamIds.has(entry.dreamId)) continue;
-      try {
-        const result = await dreamEntriesStore.fetchDreamResult(entry.dreamId);
-        if (result?.imageUrl) {
-          galleryStore.addToGallery({
-            id: result.id ?? entry.dreamId,
-            dreamId: entry.dreamId,
-            dreamDate: dateKey,
-            title: entry.title,
-            content: entry.content,
-            interpretation: result.dreamInterpretation,
-            fortuneSummary: result.todayFortuneSummary,
-            luckyColor: result.luckyColor,
-            luckyItem: result.luckyItem,
-            style: result.imageStyle || "꿈 이미지",
-            caption: entry.title || "꿈 이미지",
-            imageSrc: result.imageUrl,
-            mimeType: "image/png",
-            createdAt: result.createdAt || entry.createdAt || new Date().toISOString(),
-            savedAt: new Date().toISOString(),
-          });
-          seenDreamIds.add(entry.dreamId);
+    // 서버에서 받은 꿈 ID 목록 (이미지가 있는 꿈만)
+    const serverDreamIds = new Set(response.items.map((item) => item.dreamId));
+
+    // 로컬 갤러리에서 서버에 없는 항목 제거 (이미지가 삭제된 경우)
+    const localDreamIds = galleryImages.value.map((img) => img.dreamId).filter(Boolean);
+    for (const localDreamId of localDreamIds) {
+      if (!serverDreamIds.has(localDreamId)) {
+        // 서버에 없는 항목은 로컬에서도 삭제
+        const imageToRemove = galleryImages.value.find((img) => img.dreamId === localDreamId);
+        if (imageToRemove) {
+          galleryStore.removeFromGallery(imageToRemove.id);
+          console.log(`🗑️ 서버에서 삭제된 항목 제거: dreamId=${localDreamId}`);
         }
-      } catch (e) {
-        console.warn("꿈 결과 불러오기 실패:", entry.dreamId, e?.message);
       }
     }
+
+    // 서버에서 받은 꿈들을 갤러리에 추가 또는 업데이트
+    for (const item of response.items) {
+      // 이미지가 있는 경우만 갤러리에 추가/업데이트
+      if (item.imageUrl) {
+        galleryStore.addToGallery({
+          id: item.dreamId, // dreamId를 일관된 식별자로 사용하여 중복 방지
+          dreamId: item.dreamId,
+          dreamDate: item.dreamDate,
+          title: item.title,
+          content: item.content,
+          interpretation: item.dreamInterpretation,
+          fortuneSummary: item.todayFortuneSummary,
+          luckyColor: item.luckyColor,
+          luckyItem: item.luckyItem,
+          style: "꿈 이미지",
+          caption: item.title || "꿈 이미지",
+          imageSrc: item.imageUrl,
+          mimeType: "image/png",
+          createdAt: item.createdDate || new Date().toISOString(),
+          savedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    console.log(`✅ 갤러리 동기화 완료: ${response.items.length}개의 이미지를 불러왔습니다.`);
+  } catch (error) {
+    console.error("갤러리 동기화 실패:", error);
   } finally {
     syncing.value = false;
   }
@@ -561,8 +571,6 @@ async function syncFromServer() {
 
 <style scoped>
 @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Dongle:wght@300;400;700&display=swap");
 
 .gallery-card {
   background: white;
@@ -581,18 +589,6 @@ async function syncFromServer() {
   margin-bottom: 2rem;
 }
 
-.back-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #888;
-  padding: 5px;
-  transition: color 0.2s;
-}
-
-.back-btn:hover {
-  color: #333;
-}
 
 .page-title {
   font-family: "Dongle", sans-serif;
@@ -631,7 +627,7 @@ async function syncFromServer() {
 }
 
 .search-box:focus-within {
-  border-color: #a2d2ff;
+  border-color: var(--color-blue);
 }
 
 .search-box svg {
@@ -670,7 +666,7 @@ async function syncFromServer() {
 }
 
 .filter-btn:hover {
-  border-color: #a2d2ff;
+  border-color: var(--color-blue);
   background: #f8f9ff;
 }
 
@@ -717,7 +713,7 @@ async function syncFromServer() {
 }
 
 .view-mode-btn:hover {
-  border-color: #a2d2ff;
+  border-color: var(--color-blue);
   background: #f8f9ff;
 }
 
@@ -823,6 +819,7 @@ async function syncFromServer() {
   color: #333;
   font-weight: 700;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -864,7 +861,7 @@ async function syncFromServer() {
 }
 
 .action-btn:hover {
-  border-color: #a2d2ff;
+  border-color: var(--color-blue);
   background: #f8f9ff;
 }
 
@@ -893,25 +890,6 @@ async function syncFromServer() {
 .empty-gallery h3 {
   color: #333;
   margin-bottom: 0.5rem;
-}
-
-.create-btn {
-  margin-top: 2rem;
-  padding: 1rem 2rem;
-  border: none;
-  border-radius: 20px;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: white;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  cursor: pointer;
-  transition: all 0.3s;
-  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-}
-
-.create-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
 }
 
 /* 갤러리 아이템 메타 뱃지 */

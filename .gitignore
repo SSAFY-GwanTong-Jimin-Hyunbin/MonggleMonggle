@@ -20,6 +20,12 @@ AI_API/models/
 # AI API generated/intermediate data
 AI_API/generated_results/
 
+# AI API debug screenshots & HTML dumps
+AI_API/debug_outputs/
+
+# Root-level debug dumps
+debug_outputs/
+
 # Node/Vite build outputs
 FRONT/node_modules/
 FRONT/dist/
@@ -35,4 +41,6 @@ pnpm-debug.log*
 .env
 .env.*
 
+# AI API generated/intermediate data
+AI_API/generated_results/
 

@@ -4,12 +4,13 @@ import com.ssafy.finalproject.exception.ForbiddenException;
 import com.ssafy.finalproject.exception.ResourceNotFoundException;
 import com.ssafy.finalproject.model.dao.DreamsDao;
 import com.ssafy.finalproject.model.dao.DreamsResultsDao;
-import com.ssafy.finalproject.model.dao.EmotionDao;
 import com.ssafy.finalproject.model.dto.request.CreateDreamRequest;
 import com.ssafy.finalproject.model.dto.request.UpdateDreamRequest;
 import com.ssafy.finalproject.model.dto.response.DreamListResponse;
 import com.ssafy.finalproject.model.dto.response.DreamResponse;
+import com.ssafy.finalproject.model.dto.response.GalleryResponse;
 import com.ssafy.finalproject.model.entity.Dream;
+import com.ssafy.finalproject.model.entity.DreamResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class DreamService {
     
     private final DreamsDao dreamsDao;
     private final DreamsResultsDao dreamsResultsDao;
+    private final DreamResultService dreamResultService;
     
     // 꿈 일기 작성 (같은 날짜에 이미 꿈이 있으면 업데이트)
     public DreamResponse createDream(Long userId, CreateDreamRequest request) {
@@ -59,6 +61,7 @@ public class DreamService {
                 .title(dream.getTitle())
                 .content(dream.getContent())
                 .createdDate(dream.getCreatedDate())
+                .updatedDate(dream.getUpdatedDate())
                 .build();
     }
     
@@ -122,6 +125,7 @@ public class DreamService {
                 .title(dream.getTitle())
                 .content(dream.getContent())
                 .createdDate(dream.getCreatedDate())
+                .updatedDate(dream.getUpdatedDate())
                 .build();
     }
     
@@ -140,6 +144,9 @@ public class DreamService {
         dream.setContent(request.getContent());
         
         dreamsDao.updateDream(dream);
+        
+        // 꿈 일기 내용이 바뀌면 기존 해몽/이미지를 초기화
+        dreamResultService.deleteDreamResult(userId, dreamId);
     }
     
     // 꿈 일기 삭제
@@ -152,7 +159,54 @@ public class DreamService {
             throw new ForbiddenException("접근 권한이 없습니다.");
         }
         
+        // 꿈 일기 삭제 시 남은 해몽/이미지도 정리
+        dreamResultService.deleteDreamResult(userId, dreamId);
         dreamsDao.deleteDream(dreamId);
+    }
+    
+    // 갤러리용: 이미지가 있는 꿈 전체 조회
+    @Transactional(readOnly = true)
+    public GalleryResponse getDreamsWithImages(Long userId) {
+        List<Dream> dreams = dreamsDao.findDreamsWithImagesByUserId(userId);
+        
+        List<GalleryResponse.GalleryItem> items = dreams.stream()
+                .map(dream -> {
+                    // 해몽 결과 조회
+                    DreamResult result = dreamsResultsDao.findByDreamId(dream.getDreamId())
+                            .orElse(null);
+                    
+                    if (result == null) {
+                        return null;
+                    }
+                    
+                    return GalleryResponse.GalleryItem.builder()
+                            .dreamId(dream.getDreamId())
+                            .dreamDate(dream.getDreamDate())
+                            .title(dream.getTitle())
+                            .content(dream.getContent())
+                            .emotionId(dream.getEmotionId())
+                            .resultId(result.getId())
+                            .dreamInterpretation(result.getDreamInterpretation())
+                            .todayFortuneSummary(result.getTodayFortuneSummary())
+                            .luckyColor(GalleryResponse.LuckyColorDto.builder()
+                                    .name(result.getLuckyColorName())
+                                    .number(result.getLuckyColorNumber())
+                                    .reason(result.getLuckyColorReason())
+                                    .build())
+                            .luckyItem(GalleryResponse.LuckyItemDto.builder()
+                                    .name(result.getLuckyItemName())
+                                    .reason(result.getLuckyItemReason())
+                                    .build())
+                            .imageUrl(result.getImageUrl())
+                            .createdDate(result.getCreatedDate())
+                            .build();
+                })
+                .filter(item -> item != null)
+                .collect(Collectors.toList());
+        
+        return GalleryResponse.builder()
+                .items(items)
+                .build();
     }
 }
 

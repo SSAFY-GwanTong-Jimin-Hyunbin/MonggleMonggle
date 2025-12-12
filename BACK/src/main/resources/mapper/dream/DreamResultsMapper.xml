@@ -44,16 +44,22 @@
     <!-- AI 분석 결과 수정 -->
     <update id="updateDreamResult" parameterType="com.ssafy.finalproject.model.entity.DreamResult">
         UPDATE dream_results
-        SET image_url = #{imageUrl}
+        SET dream_interpretation  = #{dreamInterpretation},
+            today_fortune_summary = #{todayFortuneSummary},
+            lucky_color_name      = #{luckyColorName},
+            lucky_color_number    = #{luckyColorNumber},
+            lucky_color_reason    = #{luckyColorReason},
+            lucky_item_name       = #{luckyItemName},
+            lucky_item_reason     = #{luckyItemReason},
+            image_url             = #{imageUrl}
         WHERE dream_id = #{dreamId}
     </update>
 
-    <!-- AI 분석 결과 삭제 -->
-    <update id="deleteDreamResult" parameterType="long">
-        UPDATE dream_results
-        SET deleted_date = NOW()
+    <!-- AI 분석 결과 삭제 (하드 삭제) -->
+    <delete id="deleteDreamResult" parameterType="long">
+        DELETE FROM dream_results
         WHERE dream_id = #{dreamId}
-    </update>
+    </delete>
 
     <!-- 꿈 ID로 분석 결과 존재 여부 확인 -->
     <select id="existsByDreamId" parameterType="long" resultType="boolean">

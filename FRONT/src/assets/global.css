@@ -1,3 +1,6 @@
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Dongle:wght@300;400;700&display=swap");
+
 @font-face {
   font-family: 'ThinRounded';
   src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2511-1@1.0/ThinDungGeunMo.woff2') format('woff2');
@@ -6,7 +9,77 @@
 }
 
 :root {
+  /* 폰트 */
   --font-main: 'ThinRounded', sans-serif;
+
+  /* ===== 몽글몽글 컬러 팔레트 ===== */
+  /* 메인 파스텔 색상 */
+  --color-purple: #cdb4db;
+  --color-pink: #ffc8dd;
+  --color-blue: #a2d2ff;
+
+  /* 다크 파스텔 (hover, accent) */
+  --color-purple-dark: #b799c7;
+  --color-pink-dark: #ffb3cc;
+  --color-blue-dark: #8bb8e8;
+
+  /* 텍스트 색상 */
+  --color-text-primary: #4c2b7b;
+  --color-text-secondary: #6a4a88;
+  --color-text-muted: #8a6aa8;
+
+  /* 그라데이션 */
+  --gradient-primary: linear-gradient(135deg, var(--color-purple), var(--color-pink), var(--color-blue));
+  --gradient-purple-blue: linear-gradient(135deg, var(--color-purple), var(--color-blue));
+  --gradient-purple-pink: linear-gradient(135deg, var(--color-purple), var(--color-pink));
+
+  /* 반투명 배경 (10%) */
+  --color-purple-light: rgba(205, 180, 219, 0.1);
+  --color-pink-light: rgba(255, 200, 221, 0.1);
+  --color-blue-light: rgba(162, 210, 255, 0.1);
+  --gradient-bg-light: linear-gradient(135deg, var(--color-purple-light), var(--color-pink-light), var(--color-blue-light));
+
+  /* 반투명 배경 (15%) */
+  --color-purple-15: rgba(205, 180, 219, 0.15);
+  --color-pink-15: rgba(255, 200, 221, 0.15);
+  --color-blue-15: rgba(162, 210, 255, 0.15);
+  --gradient-bg-15: linear-gradient(135deg, var(--color-purple-15), var(--color-pink-15), var(--color-blue-15));
+
+  /* 반투명 배경 (20%) */
+  --color-purple-20: rgba(205, 180, 219, 0.2);
+  --color-pink-20: rgba(255, 200, 221, 0.2);
+  --color-blue-20: rgba(162, 210, 255, 0.2);
+
+  /* 반투명 배경 (30%) - 타이틀 배지 등 */
+  --color-purple-30: rgba(205, 180, 219, 0.3);
+  --color-blue-30: rgba(162, 210, 255, 0.3);
+  --gradient-title-badge: linear-gradient(135deg, var(--color-purple-30), var(--color-blue-30));
+
+  /* 반투명 배경 (40%) */
+  --color-purple-40: rgba(205, 180, 219, 0.4);
+
+  /* 반투명 배경 (50%) */
+  --color-purple-50: rgba(205, 180, 219, 0.5);
+
+  /* 반투명 배경 (35%) - 리포트 모달 등 */
+  --color-purple-35: rgba(205, 180, 219, 0.35);
+  --color-blue-35: rgba(162, 210, 255, 0.35);
+  --gradient-report-badge: linear-gradient(135deg, var(--color-purple-35), var(--color-blue-35));
+
+  /* 반투명 배경 (60%) */
+  --color-purple-60: rgba(205, 180, 219, 0.6);
+
+  /* 보더 색상 */
+  --border-purple: rgba(205, 180, 219, 0.2);
+  --border-purple-light: rgba(205, 180, 219, 0.3);
+  --border-dashed-purple: rgba(205, 180, 219, 0.4);
+
+  /* 그림자 */
+  --shadow-purple: rgba(205, 180, 219, 0.3);
+  --shadow-purple-md: rgba(205, 180, 219, 0.4);
+  --shadow-purple-lg: rgba(205, 180, 219, 0.5);
+  --shadow-pink: rgba(255, 200, 221, 0.3);
+  --shadow-blue: rgba(162, 210, 255, 0.3);
 }
 
 *,
@@ -51,7 +124,7 @@ select {
   font-weight: 800;
   color: #333;
   margin-bottom: 0.5rem;
-  background: linear-gradient(135deg, #CDB4DB, #FFC8DD, #A2D2FF);
+  background: var(--gradient-primary);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -90,9 +163,9 @@ select {
 }
 
 .auth-input:focus, .custom-input:focus {
-  border-color: #CDB4DB;
+  border-color: var(--color-purple);
   background: #fff;
-  box-shadow: 0 0 0 4px rgba(205, 180, 219, 0.1);
+  box-shadow: 0 0 0 4px var(--color-purple-light);
 }
 
 .auth-input::placeholder, .custom-input::placeholder {
@@ -186,7 +259,7 @@ select {
 
 .custom-radio:checked {
   border-color: transparent;
-  background: #CDB4DB;
+  background: var(--color-purple);
 }
 
 .custom-radio:checked::after {
@@ -202,7 +275,7 @@ select {
 }
 
 .custom-radio:hover {
-  border-color: #CDB4DB;
+  border-color: var(--color-purple);
 }
 
 .radio-label-text, .radio-text {
@@ -218,18 +291,23 @@ select {
   padding: 1rem;
   border: none;
   border-radius: 15px;
-  background: linear-gradient(135deg, #CDB4DB, #FFC8DD, #A2D2FF);
+  background: var(--gradient-primary);
   color: white;
   font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 10px 20px rgba(162, 210, 255, 0.3);
+  box-shadow: 0 10px 20px var(--shadow-blue);
 }
 
 .submit-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 15px 30px rgba(162, 210, 255, 0.4);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 에러 텍스트 */
@@ -241,12 +319,147 @@ select {
   font-weight: 600;
 }
 
+/* 글래스 버튼/칩 공통 스타일 */
+.glass-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+  height: 42px;
+}
+
+.glass-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.btn-text {
+  font-family: "Nunito", sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 0.5rem 0.9rem;
+  border-radius: 20px;
+  color: white;
+  font-weight: 700;
+  min-width: 70px;
+  height: 42px;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* 글래스 팝오버 공통 스타일 */
+.glass-popover {
+  position: absolute;
+  background: white;
+  border: 1px solid #F0F0F0;
+  box-shadow: 0 10px 40px rgba(100, 100, 200, 0.15);
+  border-radius: 20px;
+  padding: 1rem 1.2rem;
+  color: #333;
+  z-index: 1200;
+}
+
+.glass-popover::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  right: 28px;
+  width: 14px;
+  height: 14px;
+  background: white;
+  border-left: 1px solid #F0F0F0;
+  border-top: 1px solid #F0F0F0;
+  transform: rotate(45deg);
+}
+
+.glass-popover-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gradient-purple-blue);
+  box-shadow: 0 0 0 4px var(--color-purple-light);
+  display: inline-block;
+}
+
+/* 팝오버 애니메이션 */
+.popover-enter-active,
+.popover-leave-active {
+  transition: opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.popover-enter-from,
+.popover-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+}
+
+/* 프로그레스 바 공통 스타일 */
+.glass-progress {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: #F0F0F0;
+  overflow: hidden;
+}
+
+.glass-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-purple), var(--color-pink), var(--color-blue));
+  transition: width 0.3s ease;
+}
+
+/* 하이라이트 필 (강조 텍스트) */
+.highlight-text {
+  color: var(--color-purple);
+  font-weight: 700;
+}
+
+/* 타임 필 공통 스타일 */
+.time-pill {
+  background: var(--gradient-purple-blue);
+  color: white;
+  padding: 0.4rem 0.75rem;
+  border-radius: 12px;
+  font-family: "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 12px var(--shadow-blue);
+}
+
 /* 푸터 액션 링크 스타일 */
 .footer-actions {
   display: flex;
   justify-content: center;
   gap: 1rem;
-  margin-top: 1.5rem;
+  margin-top: 0.5rem;
   font-size: 0.9rem;
   color: #999;
 }
@@ -262,6 +475,39 @@ select {
 }
 
 .back-text:hover {
-  color: #A2D2FF;
+  color: var(--color-blue);
   text-decoration: underline;
+}
+
+/* ===== 공통 아이콘 버튼 스타일 ===== */
+
+/* 기본 아이콘 버튼 (헤더 내 back/close 버튼) */
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  padding: 8px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn:hover {
+  background: #F5F5F5;
+  color: #333;
+}
+
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* 절대 위치 modifier (카드 우측 상단) */
+.icon-btn-absolute {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
 }

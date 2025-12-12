@@ -2,55 +2,25 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { useGalleryStore } from "./galleryStore";
 import { useMonthlyMemoStore } from "./monthlyMemoStore";
-import { luckyColorPalette, getLuckyColorById } from "../constants/luckyColors";
+import { useAuthStore } from "./authStore";
+import { getColorHex } from "../constants/luckyColors";
 import { dreamService } from "../services/dreamService";
 import { fortuneService } from "../services/fortuneService";
 import { dreamResultService } from "../services/dreamResultService";
+import { formatDateKey } from "../utils/dateUtils";
 
 const STORAGE_KEY = "dreamEntriesStore";
 const LEGACY_KEY = "dreamStore";
 
-function formatDateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function getRandomLuckyColorId() {
-  return Math.floor(Math.random() * luckyColorPalette.length);
-}
-
-// 색상 이름을 HEX 코드로 변환
-function getColorHex(colorName) {
-  const colorMap = {
-    회색: "#9E9E9E",
-    갈색: "#8D6E63",
-    주황색: "#FF9800",
-    노란색: "#FFEB3B",
-    초록색: "#4CAF50",
-    파란색: "#2196F3",
-    보라색: "#9C27B0",
-    분홍색: "#E91E63",
-    빨간색: "#F44336",
-    하늘색: "#03A9F4",
-    청록색: "#00BCD4",
-    금색: "#FFD700",
-    은색: "#C0C0C0",
-    검정색: "#424242",
-    흰색: "#FFFFFF",
-  };
-  return colorMap[colorName] || "#CDB4DB"; // 기본값: 연보라색
-}
-
 export const useDreamEntriesStore = defineStore("dreamEntries", () => {
+  const authStore = useAuthStore();
+  const galleryStore = useGalleryStore();
   const selectedDate = ref(null);
   const dreamTitle = ref("");
   const dreamContent = ref("");
   const selectedEmotion = ref(null);
   const posts = ref({});
   const showAnalysisOption = ref(false);
-  const currentLuckyColorId = ref(getRandomLuckyColorId());
   const loading = ref(false);
   const error = ref(null);
   const currentDreamId = ref(null); // 서버에서 받은 꿈 ID
@@ -61,8 +31,6 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
   const analysisError = ref(null);
   const analysisDate = ref(null); // 분석 요청한 날짜
   const hasExistingResult = ref(false); // 기존 해몽 결과 존재 여부
-  const reinterpretCount = ref(0); // 재해몽 횟수 (최대 2회)
-  const MAX_REINTERPRET = 2; // 최대 재해몽 횟수
 
   function setSelectedDate(date) {
     selectedDate.value = date;
@@ -80,18 +48,12 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
       selectedEmotion.value = existingPost.emotion ?? null;
       currentDreamId.value = existingPost.dreamId ?? null;
       showAnalysisOption.value = true;
-      // 기존 해몽 결과 여부 및 재해몽 횟수
+      // 기존 해몽 결과 여부
       hasExistingResult.value = existingPost.hasResult ?? false;
-      reinterpretCount.value = existingPost.reinterpretCount ?? 0;
-      if (typeof existingPost.luckyColorId === "number") {
-        currentLuckyColorId.value = existingPost.luckyColorId;
-      }
     } else {
       resetWriteFields();
       showAnalysisOption.value = false;
       hasExistingResult.value = false;
-      reinterpretCount.value = 0;
-      currentLuckyColorId.value = getRandomLuckyColorId();
     }
   }
 
@@ -121,16 +83,18 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
     const dateKey = formatDateKey(date);
     const existingPost = posts.value[dateKey];
 
-    if (existingPost?.dreamId) {
+    // 해몽 결과가 없다고 표시된 경우에는 조회 요청을 보내지 않아 404를 피한다.
+    // (달력 목록이나 해몽 완료 시 hasResult가 true로 동기화되므로 필요한 경우에만 호출)
+    if (existingPost?.dreamId && existingPost?.hasResult) {
       const result = await fetchDreamResult(existingPost.dreamId);
       if (result) {
         hasExistingResult.value = true;
-        reinterpretCount.value = result.reinterpretCount ?? 0;
         // 분석 결과도 저장
         analysisResult.value = {
           dreamInterpretation: result.dreamInterpretation,
           todayFortuneSummary: result.todayFortuneSummary,
           luckyColor: result.luckyColor,
+          luckyColorHex: getColorHex(result.luckyColor?.name),
           luckyItem: result.luckyItem,
           date: dateKey,
           dreamTitle: existingPost.title,
@@ -141,7 +105,6 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
         posts.value[dateKey] = {
           ...existingPost,
           hasResult: true,
-          reinterpretCount: result.reinterpretCount ?? 0,
           // 해몽 결과의 행운의 색상으로 별 색상 업데이트
           color: result.luckyColor?.name ? getColorHex(result.luckyColor.name) : existingPost.color,
           luckyColorName: result.luckyColor?.name || existingPost.luckyColorName,
@@ -158,13 +121,29 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
     currentDreamId.value = null;
   }
 
+  function validateRequiredFields() {
+    const hasTitle = !!dreamTitle.value?.trim();
+    const hasContent = !!dreamContent.value?.trim();
+    const hasEmotion = selectedEmotion.value !== null && selectedEmotion.value !== undefined;
+
+    if (!hasTitle || !hasContent || !hasEmotion) {
+      return { valid: false, message: "제목, 내용, 감정을 모두 입력해주세요." };
+    }
+
+    return { valid: true };
+  }
+
   // API 연동 꿈 저장
   async function saveDream() {
     if (!selectedDate.value) return false;
 
-    const dateKey = formatDateKey(selectedDate.value);
-    const luckyColor = getLuckyColorById(currentLuckyColorId.value);
+    const validation = validateRequiredFields();
+    if (!validation.valid) {
+      error.value = validation.message;
+      return false;
+    }
 
+    const dateKey = formatDateKey(selectedDate.value);
     // 기존 게시물에서 dreamId 확인 (새로고침 후에도 유지되도록)
     const existingDreamId = currentDreamId.value || posts.value[dateKey]?.dreamId;
 
@@ -179,7 +158,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
           title: dreamTitle.value,
           content: dreamContent.value,
           dreamDate: dateKey,
-          emotionId: selectedEmotion.value || 3,
+          emotionId: selectedEmotion.value,
         };
 
         let response;
@@ -187,6 +166,13 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
           // 수정 (기존 dreamId가 있으면 업데이트)
           response = await dreamService.updateDream(existingDreamId, dreamData);
           currentDreamId.value = existingDreamId;
+
+          // 갤러리에서 해당 dreamId를 가진 항목 제거 (백엔드에서 이미지가 삭제되므로)
+          const imageToRemove = galleryStore.galleryImages.find((img) => img.dreamId === existingDreamId);
+          if (imageToRemove) {
+            galleryStore.removeFromGallery(imageToRemove.id);
+            console.log(`🗑️ 꿈 수정으로 인해 갤러리에서 이미지 제거: dreamId=${existingDreamId}`);
+          }
         } else {
           // 새로 생성
           response = await dreamService.createDream(dreamData);
@@ -194,8 +180,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
         }
       }
 
-      // 로컬 상태 업데이트 (해몽 전에는 흰색, 해몽 후 색상 업데이트됨)
-      const existingPost = posts.value[dateKey];
+      // 로컬 상태 업데이트 (수정 시 기존 해몽 결과 초기화)
       posts.value = {
         ...posts.value,
         [dateKey]: {
@@ -203,17 +188,19 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
           title: dreamTitle.value,
           content: dreamContent.value,
           emotion: selectedEmotion.value,
-          // 기존에 해몽 결과가 있으면 그 색상 유지, 없으면 흰색
-          color: existingPost?.hasResult ? existingPost.color : "#FFFFFF",
-          luckyColorId: existingPost?.hasResult ? existingPost.luckyColorId : null,
-          luckyColorName: existingPost?.hasResult ? existingPost.luckyColorName : null,
-          hasResult: existingPost?.hasResult ?? false,
-          reinterpretCount: existingPost?.reinterpretCount ?? 0,
+          color: "#FFFFFF", // 해몽 결과 초기화
+          luckyColorName: null,
+          hasResult: false,
         },
       };
 
+      // 해몽 결과 상태 초기화
+      hasExistingResult.value = false;
+      analysisResult.value = null;
+
       showAnalysisOption.value = true;
       persistEntries();
+
       return true;
     } catch (err) {
       error.value = err.response?.data?.message || "꿈 일기 저장에 실패했습니다.";
@@ -294,7 +281,6 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
             color: starColor,
             luckyColorName: dream.luckyColorName || "",
             luckyColorNumber: dream.luckyColorNumber || null,
-            reinterpretCount: 0, // 서버에서 받아와야 하지만 일단 기본값
           };
         });
         persistEntries();
@@ -360,6 +346,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
           number: result.lucky_color.number,
           reason: result.lucky_color.reason,
         },
+        luckyColorHex: getColorHex(result.lucky_color.name),
         luckyItem: {
           name: result.lucky_item.name,
           reason: result.lucky_item.reason,
@@ -390,10 +377,9 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
 
           let dbResult;
           if (hasExistingResult.value) {
-            // 재해몽: 기존 결과 업데이트
+            // 기존 결과 업데이트
             dbResult = await dreamResultService.updateDreamResult(dreamId, saveRequest);
-            reinterpretCount.value += 1;
-            console.log("✅ AI 분석 결과가 업데이트되었습니다 (재해몽 횟수:", reinterpretCount.value, ")");
+            console.log("✅ AI 분석 결과가 업데이트되었습니다.");
           } else {
             // 최초 해몽: 새로 저장
             dbResult = await dreamResultService.saveDreamResult(dreamId, saveRequest);
@@ -407,13 +393,19 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
           posts.value[dateKey] = {
             ...posts.value[dateKey],
             hasResult: true,
-            reinterpretCount: reinterpretCount.value,
             // 해몽 결과의 행운의 색상으로 별 색상 업데이트
             color: getColorHex(result.lucky_color.name),
             luckyColorName: result.lucky_color.name,
             luckyColorNumber: result.lucky_color.number,
           };
           persistEntries();
+
+          // 코인 차감 후 최신 사용자 정보 동기화
+          try {
+            await authStore.fetchCurrentUser();
+          } catch (syncErr) {
+            console.warn("⚠️ 코인 동기화 실패:", syncErr?.message || syncErr);
+          }
         } catch (dbErr) {
           // DB 저장 실패해도 분석 결과는 표시 (이미 분석 결과가 있는 경우 등)
           console.warn("⚠️ DB 저장 실패 (이미 존재할 수 있음):", dbErr.response?.data?.message || dbErr.message);
@@ -449,13 +441,11 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
     selectedDate.value = null;
     resetWriteFields();
     showAnalysisOption.value = false;
-    currentLuckyColorId.value = getRandomLuckyColorId();
   }
 
   function resetAll() {
     clearSelectedDate();
     posts.value = {};
-    currentLuckyColorId.value = getRandomLuckyColorId();
     persistEntries();
 
     // cascade reset to other domains
@@ -493,17 +483,11 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
   });
 
   const postedDates = computed(() => posts.value);
-  const currentLuckyColor = computed(() => getLuckyColorById(currentLuckyColorId.value));
-
-  function setLuckyColorId(id) {
-    if (typeof id === "number" && luckyColorPalette.some((color) => color.id === id)) {
-      currentLuckyColorId.value = id;
-    } else {
-      currentLuckyColorId.value = getRandomLuckyColorId();
-    }
-
-    persistEntries();
-  }
+  const currentLuckyColor = computed(() => ({
+    name: "",
+    hex: "#FFFFFF",
+    reason: "",
+  }));
 
   function persistEntries() {
     if (typeof window === "undefined") return;
@@ -511,7 +495,6 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
       STORAGE_KEY,
       JSON.stringify({
         posts: posts.value,
-        luckyColorId: currentLuckyColorId.value,
       })
     );
   }
@@ -523,7 +506,6 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
     if (saved) {
       const data = JSON.parse(saved);
       posts.value = data.posts || {};
-      currentLuckyColorId.value = typeof data.luckyColorId === "number" ? data.luckyColorId : 0;
       return;
     }
 
@@ -535,10 +517,6 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
   }
 
   hydrateFromLocalStorage();
-
-  // 재해몽 가능 여부 확인
-  const canReinterpret = computed(() => reinterpretCount.value < MAX_REINTERPRET);
-  const remainingReinterprets = computed(() => MAX_REINTERPRET - reinterpretCount.value);
 
   return {
     selectedDate,
@@ -559,9 +537,6 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
     analysisError,
     analysisDate,
     hasExistingResult,
-    reinterpretCount,
-    canReinterpret,
-    remainingReinterprets,
     setSelectedDate,
     setSelectedDateWithResult,
     fetchDreamResult,
@@ -572,10 +547,10 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
     resetWriteState,
     clearSelectedDate,
     resetAll,
-    setLuckyColorId,
     getMonthlyStats,
     persistEntries,
     fetchDreamsByMonth,
+    validateRequiredFields,
     // AI 분석 함수
     requestDreamAnalysis,
     clearAnalysisResult,

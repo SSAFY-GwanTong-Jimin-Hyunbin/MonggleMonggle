@@ -1,4 +1,4 @@
-import api from './api';
+import api from "./api";
 
 /**
  * 꿈 일기 관련 API 서비스
@@ -9,7 +9,7 @@ export const dreamService = {
    * @param {Object} dreamData - { title, content, dreamDate, emotionScore }
    */
   async createDream(dreamData) {
-    const response = await api.post('/dreams', dreamData);
+    const response = await api.post("/dreams", dreamData);
     return response.data;
   },
 
@@ -19,7 +19,7 @@ export const dreamService = {
    * @param {number} month - 월
    */
   async getDreamsByMonth(year, month) {
-    const response = await api.get('/dreams', {
+    const response = await api.get("/dreams", {
       params: { year, month },
     });
     return response.data;
@@ -52,7 +52,15 @@ export const dreamService = {
     const response = await api.delete(`/dreams/${dreamId}`);
     return response.data;
   },
+
+  /**
+   * 이미지가 있는 꿈 전체 조회 (갤러리용)
+   * 사용자의 이미지가 있는 모든 꿈과 해몽 결과를 한 번에 조회합니다.
+   */
+  async getDreamsWithImages() {
+    const response = await api.get("/dreams/gallery");
+    return response.data;
+  },
 };
 
 export default dreamService;
-

@@ -15,12 +15,19 @@ import com.ssafy.finalproject.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class AuthService {
+    
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     
     private final UserDao userDao;
     private final PasswordEncoder passwordEncoder;
@@ -44,6 +51,8 @@ public class AuthService {
                 .birthDate(request.getBirthDate())
                 .gender(request.getGender().toUpperCase())
                 .calendarType(request.getCalendarType())
+                .coin(5)
+                .lastCoinResetAt(LocalDateTime.now(KST))
                 .build();
         
         // 저장
@@ -57,6 +66,7 @@ public class AuthService {
                 .gender(user.getGender())
                 .birthDate(user.getBirthDate())
                 .calendarType(user.getCalendarType())
+                .coin(user.getCoin())
                 .message("회원가입이 완료되었습니다.")
                 .build();
     }
@@ -72,6 +82,13 @@ public class AuthService {
             throw new UnauthorizedException("비밀번호가 일치하지 않습니다.");
         }
         
+        // 로그인 시 코인 리셋 체크
+        resetDailyCoinIfNeeded(user.getUserId());
+        
+        // 코인 리셋 후 다시 조회하여 최신 코인 값 가져오기
+        user = userDao.findById(user.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
+        
         // JWT 토큰 생성
         String token = jwtUtil.generateToken(user.getUserId(), user.getLoginId());
         
@@ -83,13 +100,19 @@ public class AuthService {
                 .birthDate(user.getBirthDate())
                 .gender(user.getGender())
                 .calendarType(user.getCalendarType())
+                .coin(user.getCoin())
                 .token(token)
                 .message("로그인 성공")
                 .build();
     }
     
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = false)
+    public void resetDailyCoinIfNeeded(Long userId) {
+        LocalDate today = LocalDate.now(KST);
+        userDao.resetDailyCoin(userId, today);
+    }
+
     // 사용자 정보 조회
-    @Transactional(readOnly = true)
     public UserInfoResponse getUserInfo(Long userId) {
         User user = userDao.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
@@ -101,6 +124,7 @@ public class AuthService {
                 .birthDate(user.getBirthDate())
                 .gender(user.getGender())
                 .calendarType(user.getCalendarType())
+                .coin(user.getCoin())
                 .createdDate(user.getCreatedDate())
                 .build();
     }
@@ -121,6 +145,10 @@ public class AuthService {
         
         // 비밀번호가 제공된 경우에만 변경
         if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+            // 이전 비밀번호와 동일한지 확인
+            if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+                throw new ConflictException("이전과 동일한 비밀번호는 사용할 수 없습니다.");
+            }
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
         
@@ -129,7 +157,7 @@ public class AuthService {
     
     // 회원 탈퇴
     public void deleteUser(Long userId) {
-        User user = userDao.findById(userId)
+        userDao.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("사용자를 찾을 수 없습니다."));
         
         userDao.deleteUser(userId);
