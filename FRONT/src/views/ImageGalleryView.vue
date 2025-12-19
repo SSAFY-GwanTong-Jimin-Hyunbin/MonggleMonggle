@@ -6,8 +6,17 @@
           <path d="M19 12H5M12 19l-7-7 7-7" />
         </svg>
       </button>
-      <h2 class="page-title">이미지 갤러리</h2>
-      <div class="spacer"></div>
+      <h2 class="page-title">
+        이미지 갤러리
+        <span class="title-badge">Gallery</span>
+      </h2>
+      <div class="header-actions">
+        <button @click="handleClose" class="icon-btn" aria-label="닫기">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
 
     <div class="gallery-content">
@@ -23,7 +32,7 @@
 
         <div class="filter-buttons">
           <button v-for="filter in filters" :key="filter.id" :class="['filter-btn', { active: activeFilter === filter.id }]" @click="activeFilter = filter.id">
-            <span>{{ filter.emoji }}</span>
+            <span class="filter-icon" v-html="filter.icon"></span>
             <span>{{ filter.label }}</span>
           </button>
         </div>
@@ -32,7 +41,13 @@
       <!-- 갤러리 통계 -->
       <div class="gallery-stats">
         <div class="stat-item">
-          <span class="stat-icon">🖼️</span>
+          <span class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <circle cx="8.5" cy="8.5" r="1.5"></circle>
+              <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+          </span>
           <span class="stat-text">
             전체
             <strong>{{ filteredImages.length }}</strong>
@@ -40,45 +55,32 @@
           </span>
         </div>
         <div class="stat-item">
-          <span class="stat-icon">❤️</span>
+          <span class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+          </span>
           <span class="stat-text">
-            좋아요
+            찜
             <strong>{{ totalLikes }}</strong>
             개
           </span>
         </div>
       </div>
 
-      <!-- 뷰 모드 선택 -->
-      <div class="view-mode-selector">
-        <button :class="['view-mode-btn', { active: viewMode === 'grid' }]" @click="viewMode = 'grid'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-        </button>
-        <button :class="['view-mode-btn', { active: viewMode === 'masonry' }]" @click="viewMode = 'masonry'">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
       <!-- 이미지 그리드 -->
-      <div v-if="filteredImages.length > 0" :class="['gallery-grid', viewMode]">
+      <div v-if="filteredImages.length > 0" class="gallery-grid">
         <div v-for="image in filteredImages" :key="image.id" class="gallery-item" @click="openImageDetail(image)">
           <!-- 실제 이미지가 있는 경우 -->
           <div v-if="image.imageSrc" class="image-container real-image">
             <img :src="resolveImageSrc(image.imageSrc)" :alt="image.caption" class="gallery-image" />
             <div class="image-hover-overlay">
-              <span class="hover-icon">🔍</span>
+              <span class="hover-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </span>
             </div>
           </div>
           <!-- 기존 gradient/emoji 표시 (이전 형식 호환) -->
@@ -99,24 +101,11 @@
                 </svg>
                 {{ formatDreamDate(image.dreamDate) || formatDate(image.createdAt) }}
               </span>
-              <span class="meta-item style-badge">
-                {{ image.style }}
-              </span>
             </div>
             <div class="image-actions">
-              <button @click.stop="toggleLike(image)" :class="['action-btn', { liked: image.liked }]">
+              <button @click.stop="toggleLike(image)" :class="['action-btn', { liked: image.liked }]" :aria-label="image.liked ? '찜 해제' : '찜하기'">
                 <svg width="16" height="16" viewBox="0 0 24 24" :fill="image.liked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                </svg>
-                {{ image.likes }}
-              </button>
-              <button @click.stop="shareImage(image)" class="action-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="18" cy="5" r="3"></circle>
-                  <circle cx="6" cy="12" r="3"></circle>
-                  <circle cx="18" cy="19" r="3"></circle>
-                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
                 </svg>
               </button>
               <button @click.stop="deleteImage(image)" class="action-btn delete">
@@ -132,7 +121,14 @@
 
       <!-- 빈 상태 -->
       <div v-else class="empty-gallery">
-        <span class="empty-emoji">🎨</span>
+        <span class="empty-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M12 19l7-7 3 3-7 7-3-3z"></path>
+            <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path>
+            <path d="M2 2l7.586 7.586"></path>
+            <circle cx="11" cy="11" r="2"></circle>
+          </svg>
+        </span>
         <h3>아직 생성된 이미지가 없습니다</h3>
         <p>캘린더에서 꿈을 기록하고 분석하면 생성된 이미지가 여기 보입니다.</p>
       </div>
@@ -174,11 +170,6 @@
                   <!-- 액자 장식 -->
                   <div class="frame-shadow"></div>
                 </div>
-                <!-- 액자 아래 스타일 뱃지 -->
-                <div class="style-label">
-                  <span class="style-icon">🎨</span>
-                  {{ selectedImage.style }}
-                </div>
               </div>
 
               <!-- 오른쪽: 정보 섹션 -->
@@ -188,7 +179,14 @@
                   <h2>{{ selectedImage.title || selectedImage.caption }}</h2>
                   <div class="modal-meta">
                     <span class="meta-badge date">
-                      <span class="badge-icon">📅</span>
+                      <span class="badge-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      </span>
                       {{ formatDreamDate(selectedImage.dreamDate) || formatDate(selectedImage.createdAt) }}
                     </span>
                   </div>
@@ -199,7 +197,15 @@
                   <!-- 꿈 일기 본문 -->
                   <div v-if="selectedImage.content" class="modal-section dream-content-section">
                     <h3 class="section-title">
-                      <span class="section-icon">📝</span>
+                      <span class="section-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          <line x1="16" y1="13" x2="8" y2="13"></line>
+                          <line x1="16" y1="17" x2="8" y2="17"></line>
+                          <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                      </span>
                       꿈 일기 내용
                     </h3>
                     <p class="dream-content-text">{{ selectedImage.content }}</p>
@@ -208,7 +214,13 @@
                   <!-- 꿈 해석 -->
                   <div v-if="selectedImage.interpretation" class="modal-section interpretation-section">
                     <h3 class="section-title">
-                      <span class="section-icon">🔮</span>
+                      <span class="section-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <path d="M12 16v-4"></path>
+                          <path d="M12 8h.01"></path>
+                        </svg>
+                      </span>
                       꿈 해석
                     </h3>
                     <p class="interpretation-text">{{ selectedImage.interpretation }}</p>
@@ -217,7 +229,11 @@
                   <!-- 오늘의 운세 요약 -->
                   <div v-if="selectedImage.fortuneSummary" class="modal-section fortune-section">
                     <h3 class="section-title">
-                      <span class="section-icon">✨</span>
+                      <span class="section-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                      </span>
                       오늘의 운세
                     </h3>
                     <p class="fortune-text">{{ selectedImage.fortuneSummary }}</p>
@@ -298,15 +314,25 @@ const { galleryImages } = storeToRefs(galleryStore);
 
 const searchQuery = ref("");
 const activeFilter = ref("all");
-const viewMode = ref("grid");
 const selectedImage = ref(null);
 const syncing = ref(false);
 
 const filters = [
-  { id: "all", label: "전체", emoji: "🎨" },
-  { id: "recent", label: "최근", emoji: "🕐" },
-  { id: "liked", label: "좋아요", emoji: "❤️" },
-  { id: "dreamy", label: "몽환적", emoji: "🌙" },
+  { 
+    id: "all", 
+    label: "전체", 
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`
+  },
+  { 
+    id: "recent", 
+    label: "최근", 
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
+  },
+  { 
+    id: "liked", 
+    label: "찜", 
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
+  },
 ];
 
 // 컴포넌트 마운트 시 갤러리 데이터 새로고침
@@ -328,7 +354,7 @@ const filteredImages = computed(() => {
 
   // 검색 필터
   if (searchQuery.value) {
-    result = result.filter((img) => img.caption.toLowerCase().includes(searchQuery.value.toLowerCase()) || img.style.toLowerCase().includes(searchQuery.value.toLowerCase()));
+    result = result.filter((img) => img.caption.toLowerCase().includes(searchQuery.value.toLowerCase()));
   }
 
   // 카테고리 필터
@@ -336,8 +362,6 @@ const filteredImages = computed(() => {
     result = [...result].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   } else if (activeFilter.value === "liked") {
     result = result.filter((img) => img.liked);
-  } else if (activeFilter.value === "dreamy") {
-    result = result.filter((img) => img.style === "몽환적");
   }
 
   return result;
@@ -357,6 +381,10 @@ function resolveImageSrc(src) {
 }
 
 function handleBack() {
+  router.push({ name: "calendar" });
+}
+
+function handleClose() {
   router.push({ name: "calendar" });
 }
 
@@ -398,9 +426,6 @@ function toggleLike(image) {
   galleryStore.toggleImageLike(image.id);
 }
 
-function shareImage(image) {
-  alert("이미지 공유 기능은 준비 중입니다!");
-}
 
 async function deleteImage(image) {
   if (!confirm("정말 이 이미지를 삭제하시겠습니까?")) {
@@ -570,7 +595,7 @@ async function syncFromServer() {
 </script>
 
 <style scoped>
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap");
+/* ===== 몽글몽글 갤러리 스타일 ===== */
 
 .gallery-card {
   background: white;
@@ -579,36 +604,56 @@ async function syncFromServer() {
   width: 100%;
   max-width: 1200px;
   box-shadow: 0 20px 60px rgba(100, 100, 200, 0.15);
-  font-family: "Nunito", sans-serif;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
+/* .icon-btn은 global.css에서 정의됨 */
 
 .page-title {
   font-family: "Dongle", sans-serif;
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: 700;
-  color: #333;
   margin: 0;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: 999px;
+  background: var(--gradient-title-badge);
+  -webkit-text-fill-color: #4c2b7b;
+  line-height: 1.2;
 }
 
-.spacer {
-  width: 34px;
+.title-badge {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: white;
+  color: var(--color-purple-dark);
+  font-weight: 600;
+}
+
+.header-actions {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .gallery-content {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
+/* ===== 필터 섹션 ===== */
 .filter-section {
   display: flex;
   flex-direction: column;
@@ -620,18 +665,20 @@ async function syncFromServer() {
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 1.5rem;
-  background: #f8faff;
-  border: 2px solid #e8f0fe;
+  background: var(--color-purple-light);
+  border: 2px solid var(--border-purple);
   border-radius: 20px;
-  transition: border-color 0.3s;
+  transition: all 0.3s;
 }
 
 .search-box:focus-within {
-  border-color: var(--color-blue);
+  border-color: var(--color-purple);
+  background: white;
+  box-shadow: 0 0 0 4px var(--color-purple-light);
 }
 
 .search-box svg {
-  color: #999;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
@@ -640,14 +687,17 @@ async function syncFromServer() {
   border: none;
   background: transparent;
   font-size: 1rem;
-  font-family: "Nunito", sans-serif;
   outline: none;
   color: #333;
 }
 
+.search-input::placeholder {
+  color: #bbb;
+}
+
 .filter-buttons {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -655,99 +705,101 @@ async function syncFromServer() {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border: 2px solid #e8f0fe;
+  padding: 0.7rem 1.25rem;
+  border: 2px solid var(--border-purple);
   background: white;
-  border-radius: 15px;
-  font-weight: 600;
-  color: #666;
+  border-radius: 999px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .filter-btn:hover {
-  border-color: var(--color-blue);
-  background: #f8f9ff;
+  border-color: var(--color-purple);
+  background: var(--color-purple-light);
+  transform: translateY(-2px);
 }
 
 .filter-btn.active {
-  border-color: #667eea;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: transparent;
+  background: var(--gradient-purple-blue);
   color: white;
+  box-shadow: 0 4px 15px var(--shadow-purple);
 }
 
+.filter-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.filter-icon svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ===== 통계 & 뷰 모드 ===== */
 .gallery-stats {
   display: flex;
   gap: 2rem;
-  padding: 1rem;
-  background: #f8faff;
-  border-radius: 15px;
+  padding: 0.5rem 1.25rem;
+  background: var(--gradient-bg-light);
+  border-radius: 16px;
+  border: 1px solid var(--border-purple);
+  font-family: "Dongle", sans-serif;
 }
 
 .stat-item {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1rem;
-  color: #666;
+  font-size: 1.6rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }
 
 .stat-icon {
-  font-size: 1.5rem;
-}
-
-.view-mode-selector {
   display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--color-purple);
 }
 
-.view-mode-btn {
-  padding: 0.75rem;
-  border: 2px solid #e8f0fe;
-  background: white;
-  border-radius: 10px;
-  cursor: pointer;
-  color: #666;
-  transition: all 0.2s;
+.stat-icon svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 
-.view-mode-btn:hover {
-  border-color: var(--color-blue);
-  background: #f8f9ff;
+.stat-item strong {
+  color: var(--color-text-primary);
 }
 
-.view-mode-btn.active {
-  border-color: #667eea;
-  background: #667eea;
-  color: white;
-}
-
+/* ===== 갤러리 그리드 ===== */
 .gallery-grid {
   display: grid;
-  gap: 2rem;
-}
-
-.gallery-grid.grid {
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-}
-
-.gallery-grid.masonry {
+  gap: 1.5rem;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
 .gallery-item {
   background: white;
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border-purple);
+  box-shadow: 0 8px 24px var(--shadow-purple);
   transition: all 0.3s;
   cursor: pointer;
 }
 
 .gallery-item:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px var(--shadow-purple-md);
+  border-color: var(--color-purple);
 }
 
 .image-container {
@@ -758,19 +810,19 @@ async function syncFromServer() {
 }
 
 .image-container.real-image {
-  background: linear-gradient(135deg, #f3e8ff, #e8f4ff);
+  background: linear-gradient(135deg, var(--color-purple-15), var(--color-blue-15));
 }
 
 .gallery-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+  background: linear-gradient(135deg, #454278 0%, #7C78B8 50%, #C4B6DC 100%);
   transition: transform 0.3s ease;
 }
 
 .gallery-item:hover .gallery-image {
-  transform: scale(1.02);
+  transform: scale(1.03);
 }
 
 .image-hover-overlay {
@@ -779,7 +831,7 @@ async function syncFromServer() {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(102, 126, 234, 0.3);
+  background: linear-gradient(135deg, rgba(205, 180, 219, 0.4), rgba(162, 210, 255, 0.4));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -792,8 +844,16 @@ async function syncFromServer() {
 }
 
 .hover-icon {
-  font-size: 2.5rem;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.hover-icon svg {
+  width: 40px;
+  height: 40px;
 }
 
 .image-overlay {
@@ -810,13 +870,13 @@ async function syncFromServer() {
 }
 
 .image-info {
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
 .image-title {
-  margin: 0 0 0.75rem 0;
-  font-size: 1.1rem;
-  color: #333;
+  margin: 0 0 0.6rem 0;
+  font-size: 1.05rem;
+  color: var(--color-text-primary);
   font-weight: 700;
   display: -webkit-box;
   line-clamp: 2;
@@ -828,10 +888,9 @@ async function syncFromServer() {
 .image-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1rem;
-  font-size: 0.85rem;
-  color: #999;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.8rem;
 }
 
 .meta-item {
@@ -840,82 +899,102 @@ async function syncFromServer() {
   gap: 0.25rem;
 }
 
+.meta-item.date-badge {
+  color: var(--color-purple);
+  font-weight: 600;
+  font-family: 'Dongle';
+  font-size: 1rem;
+}
+
+
 .image-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  justify-content:flex-end;
 }
 
 .action-btn {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.25rem;
-  padding: 0.5rem 1rem;
-  border: 2px solid #e8f0fe;
+  padding: 0.5rem;
+  border: 1px solid var(--border-purple);
   background: white;
   border-radius: 10px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #666;
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.2s;
 }
 
+.action-btn svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
 .action-btn:hover {
-  border-color: var(--color-blue);
-  background: #f8f9ff;
+  border-color: var(--color-purple);
+  background: var(--color-purple-light);
+  color: var(--color-purple);
 }
 
 .action-btn.liked {
-  border-color: #ff8a80;
-  color: #ff8a80;
+  border-color: var(--color-pink);
+  color: var(--color-pink-dark);
+  background: rgba(255, 200, 221, 0.15);
 }
 
 .action-btn.delete:hover {
   border-color: #ff8a80;
-  color: #ff8a80;
+  color: #ff5252;
+  background: rgba(255, 138, 128, 0.1);
 }
 
+/* ===== 빈 상태 ===== */
 .empty-gallery {
   text-align: center;
-  padding: 5rem 2rem;
-  color: #999;
+  padding: 4rem 2rem;
+  color: var(--color-text-muted);
 }
 
-.empty-emoji {
-  font-size: 5rem;
-  display: block;
-  margin-bottom: 1rem;
+.empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  color: var(--color-purple);
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
 .empty-gallery h3 {
-  color: #333;
+  color: var(--color-text-primary);
+  font-size: 1.25rem;
   margin-bottom: 0.5rem;
 }
 
-/* 갤러리 아이템 메타 뱃지 */
-.meta-item.date-badge {
-  color: #667eea;
-  font-weight: 600;
+.empty-gallery p {
+  max-width: 300px;
+  margin: 0 auto;
+  line-height: 1.6;
 }
 
-.meta-item.style-badge {
-  background: linear-gradient(135deg, #c77dff, #6fa7ff);
-  color: white;
-  padding: 0.2rem 0.5rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-/* ===== 모달 스타일 - 투명 배경 ===== */
+/* ===== 모달 - 몽글몽글 스타일 ===== */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(3px);
+  background: linear-gradient(135deg, rgba(69, 66, 120, 0.85), rgba(124, 120, 184, 0.85));
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -924,29 +1003,30 @@ async function syncFromServer() {
   gap: 1rem;
 }
 
-/* 네비게이션 버튼 (이전/다음) */
+/* 네비게이션 버튼 */
 .nav-btn {
   position: relative;
   z-index: 10;
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  color: #333;
+  background: white;
+  color: var(--color-purple);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px var(--shadow-purple);
   flex-shrink: 0;
 }
 
 .nav-btn:hover {
-  background: white;
+  background: var(--color-purple);
+  color: white;
   transform: scale(1.1);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 25px var(--shadow-purple-md);
 }
 
 .nav-btn:active {
@@ -956,7 +1036,7 @@ async function syncFromServer() {
 .modal-content {
   background: transparent;
   border-radius: 0;
-  max-width: 1100px;
+  max-width: 1000px;
   width: 100%;
   max-height: 90vh;
   display: flex;
@@ -968,24 +1048,26 @@ async function syncFromServer() {
 
 .modal-close {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  width: 44px;
-  height: 44px;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 40px;
+  height: 40px;
   border: none;
-  background: rgba(0, 0, 0, 0.5);
+  background: white;
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-text-muted);
   transition: all 0.3s;
   z-index: 10;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .modal-close:hover {
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--color-pink);
+  color: white;
   transform: scale(1.1);
 }
 
@@ -997,13 +1079,13 @@ async function syncFromServer() {
   min-height: 0;
   overflow: hidden;
   gap: 0;
-  border-radius: 20px;
-  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.3);
+  border-radius: 32px;
+  box-shadow: 0 25px 80px rgba(100, 100, 200, 0.4);
 }
 
-/* 왼쪽: 미술관 벽 & 액자 섹션 */
+/* 왼쪽: 이미지 섹션 - 밤하늘 테마 */
 .modal-image-section {
-  flex: 0 0 55%;
+  flex: 0 0 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1011,60 +1093,62 @@ async function syncFromServer() {
   padding: 2.5rem 2rem;
   position: relative;
   min-width: 0;
-  /* 미술관 벽면 효과 */
-  background: linear-gradient(180deg, #2d2d3d 0%, #252535 30%, #1e1e2c 70%, #1a1a28 100%);
-  border-radius: 20px 0 0 20px;
+  background: linear-gradient(180deg, #454278 0%, #7C78B8 60%, #C4B6DC 100%);
+  border-radius: 32px 0 0 32px;
+  overflow: hidden;
 }
 
-/* 미술관 스포트라이트 효과 (위에서 비추는 빛) */
+/* 별 효과 */
 .modal-image-section::before {
   content: "";
   position: absolute;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 70%;
-  height: 60%;
-  background: radial-gradient(ellipse at center top, rgba(255, 250, 230, 0.15) 0%, rgba(255, 250, 230, 0.06) 35%, transparent 65%);
-  pointer-events: none;
-}
-
-/* 바닥 반사광 */
-.modal-image-section::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
   left: 0;
   right: 0;
-  height: 25%;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.25) 0%, transparent 100%);
+  bottom: 0;
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, white, transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 90px 40px, white, transparent),
+    radial-gradient(2px 2px at 130px 80px, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 160px 30px, white, transparent),
+    radial-gradient(2px 2px at 200px 60px, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 50px 120px, white, transparent),
+    radial-gradient(2px 2px at 100px 150px, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 180px 140px, white, transparent);
   pointer-events: none;
-  border-radius: 0 0 0 20px;
+  animation: twinkle-stars 4s ease-in-out infinite alternate;
 }
 
-/* 액자 컨테이너 */
+@keyframes twinkle-stars {
+  0% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* 액자 컨테이너 - 부드러운 스타일 */
 .frame-container {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 420px;
+  max-width: 380px;
 }
 
-/* 고급 목재 액자 */
+/* 부드러운 파스텔 액자 */
 .frame-outer {
-  background: linear-gradient(145deg, #c9a66b 0%, #9a7b3c 8%, #6b5a2a 20%, #4a3f20 50%, #6b5a2a 80%, #9a7b3c 92%, #c9a66b 100%);
-  padding: 16px;
-  border-radius: 4px;
-  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7), 0 15px 35px rgba(0, 0, 0, 0.5), inset 0 2px 3px rgba(255, 255, 255, 0.35), inset 0 -2px 3px rgba(0, 0, 0, 0.4), inset 3px 0 4px rgba(0, 0, 0, 0.25),
-    inset -3px 0 4px rgba(0, 0, 0, 0.25);
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(255,255,255,0.7));
+  padding: 12px;
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.2),
+    0 8px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
-/* 액자 내부 금장 테두리 */
+/* 액자 내부 그라데이션 테두리 */
 .frame-inner {
-  background: linear-gradient(145deg, #d4af37 0%, #c4a030 25%, #a8892a 50%, #c4a030 75%, #d4af37 100%);
-  padding: 6px;
-  border-radius: 2px;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5), inset 0 -1px 2px rgba(0, 0, 0, 0.35), 0 0 12px rgba(212, 175, 55, 0.25);
+  background: var(--gradient-primary);
+  padding: 4px;
+  border-radius: 16px;
 }
 
 .framed-image {
@@ -1073,10 +1157,9 @@ async function syncFromServer() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #0c0c12, #14141c);
-  border-radius: 1px;
+  background: white;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
 }
 
 .framed-image img {
@@ -1091,51 +1174,24 @@ async function syncFromServer() {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 1px;
-  background: linear-gradient(145deg, #0c0c12, #14141c);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--color-purple-15), var(--color-pink-15));
 }
 
 .placeholder-emoji {
   font-size: 5rem;
-  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
 }
 
-/* 액자 바닥 그림자 */
+/* 액자 그림자 제거 (새 스타일에서 불필요) */
 .frame-shadow {
-  position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
-  height: 30px;
-  background: radial-gradient(ellipse, rgba(0, 0, 0, 0.5), transparent 70%);
-  z-index: 0;
+  display: none;
 }
 
-/* 작품 정보 플레이트 (미술관 스타일) */
-.style-label {
-  margin-top: 1.5rem;
-  padding: 0.65rem 1.6rem;
-  background: linear-gradient(145deg, #28282f, #1c1c22);
-  border: 1px solid rgba(212, 175, 55, 0.35);
-  border-radius: 3px;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.08);
-}
 
-.style-icon {
-  font-size: 0.9rem;
-}
-
-/* 오른쪽: 정보 섹션 - 깔끔한 카드 스타일 */
+/* 오른쪽: 정보 섹션 */
 .modal-info-section {
-  flex: 0 0 45%;
+  flex: 0 0 50%;
   display: flex;
   flex-direction: column;
   padding: 2rem;
@@ -1143,23 +1199,23 @@ async function syncFromServer() {
   min-height: 0;
   overflow: hidden;
   background: white;
-  border-radius: 0 20px 20px 0;
+  border-radius: 0 32px 32px 0;
 }
 
 .modal-header-info {
   padding-bottom: 1.25rem;
-  border-bottom: 2px solid rgba(102, 78, 50, 0.12);
+  border-bottom: 2px dashed var(--border-purple);
   margin-bottom: 1.25rem;
   flex-shrink: 0;
 }
 
 .modal-header-info h2 {
   margin: 0 0 0.85rem 0;
-  font-family: "Playfair Display", serif;
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: #2a2520;
-  line-height: 1.35;
+  font-family: "Dongle", sans-serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
   word-break: keep-all;
 }
 
@@ -1174,22 +1230,29 @@ async function syncFromServer() {
   align-items: center;
   gap: 0.35rem;
   padding: 0.45rem 0.95rem;
-  border-radius: 20px;
+  border-radius: 999px;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .meta-badge.date {
-  background: linear-gradient(135deg, #f0ebe4, #e8e2d9);
-  color: #6b5a4a;
-  border: 1px solid rgba(107, 90, 74, 0.15);
+  background: var(--gradient-bg-15);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--border-purple);
 }
 
 .badge-icon {
-  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 스크롤 가능 영역 */
+.badge-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* 스크롤 영역 */
 .modal-scrollable {
   flex: 1;
   overflow-y: auto;
@@ -1207,19 +1270,19 @@ async function syncFromServer() {
 }
 
 .modal-scrollable::-webkit-scrollbar-thumb {
-  background: rgba(102, 126, 234, 0.25);
+  background: var(--color-purple-40);
   border-radius: 5px;
 }
 
 .modal-scrollable::-webkit-scrollbar-thumb:hover {
-  background: rgba(102, 126, 234, 0.4);
+  background: var(--color-purple-60);
 }
 
-/* 모달 섹션 - 가독성 개선 */
+/* 모달 섹션 */
 .modal-section {
   margin-bottom: 0.85rem;
   padding: 1rem 1.1rem;
-  border-radius: 14px;
+  border-radius: 16px;
   transition: transform 0.2s;
 }
 
@@ -1227,25 +1290,33 @@ async function syncFromServer() {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0 0 0.6rem 0;
 }
 
 .section-icon {
-  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.section-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 /* 꿈 일기 내용 섹션 */
 .dream-content-section {
-  background: linear-gradient(135deg, #faf5ff, #f3e8ff);
-  border-left: 3px solid #a855f7;
+  background: linear-gradient(135deg, var(--color-purple-15), var(--color-pink-15));
+  border-left: 3px solid var(--color-purple);
 }
 
 .dream-content-text {
   margin: 0;
-  color: #444;
+  color: #555;
   line-height: 1.75;
   font-size: 0.9rem;
   white-space: pre-wrap;
@@ -1254,13 +1325,13 @@ async function syncFromServer() {
 
 /* 꿈 해석 섹션 */
 .interpretation-section {
-  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-  border-left: 3px solid #0ea5e9;
+  background: linear-gradient(135deg, var(--color-blue-15), var(--color-purple-15));
+  border-left: 3px solid var(--color-blue);
 }
 
 .interpretation-text {
   margin: 0;
-  color: #0c4a6e;
+  color: #4a6a8a;
   line-height: 1.75;
   font-size: 0.9rem;
   white-space: pre-wrap;
@@ -1269,13 +1340,13 @@ async function syncFromServer() {
 
 /* 오늘의 운세 섹션 */
 .fortune-section {
-  background: linear-gradient(135deg, #fffbeb, #fef3c7);
-  border-left: 3px solid #f59e0b;
+  background: linear-gradient(135deg, var(--color-pink-15), rgba(255, 224, 130, 0.15));
+  border-left: 3px solid var(--color-pink);
 }
 
 .fortune-text {
   margin: 0;
-  color: #78350f;
+  color: #8a5a6a;
   line-height: 1.75;
   font-size: 0.9rem;
   word-break: break-word;
@@ -1283,8 +1354,8 @@ async function syncFromServer() {
 
 /* 행운 정보 섹션 */
 .lucky-section {
-  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-  border-left: 3px solid #22c55e;
+  background: var(--gradient-bg-15);
+  border-left: 3px solid var(--color-blue);
   padding: 0.85rem 1.1rem;
 }
 
@@ -1302,7 +1373,7 @@ async function syncFromServer() {
 
 .lucky-label {
   font-size: 0.7rem;
-  color: #16a34a;
+  color: var(--color-text-muted);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1311,7 +1382,7 @@ async function syncFromServer() {
 .lucky-value {
   font-size: 0.95rem;
   font-weight: 700;
-  color: #166534;
+  color: var(--color-text-primary);
 }
 
 .lucky-value.color-value {
@@ -1321,19 +1392,19 @@ async function syncFromServer() {
 }
 
 .color-dot {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* 액션 버튼 - 컴팩트하게 */
+/* 액션 버튼 */
 .modal-actions {
   display: flex;
   gap: 0.75rem;
   padding-top: 1rem;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 2px dashed var(--border-purple);
   flex-shrink: 0;
 }
 
@@ -1345,7 +1416,7 @@ async function syncFromServer() {
   padding: 0.85rem 1rem;
   flex: 1;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   font-weight: 700;
   font-size: 0.85rem;
   cursor: pointer;
@@ -1353,42 +1424,42 @@ async function syncFromServer() {
 }
 
 .modal-action-btn.ghost {
-  background: white;
-  color: #4a5568;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: var(--color-purple-light);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--border-purple);
 }
 
 .modal-action-btn.ghost:hover {
-  background: #f8f9fa;
-  border-color: rgba(0, 0, 0, 0.15);
+  background: var(--color-purple-20);
+  border-color: var(--color-purple);
 }
 
 .modal-action-btn.primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
-  box-shadow: 0 3px 12px rgba(102, 126, 234, 0.25);
+  box-shadow: 0 4px 15px var(--shadow-purple);
 }
 
 .modal-action-btn.primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--shadow-purple-md);
 }
 
 .modal-action-btn.danger {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
+  background: linear-gradient(135deg, #ff8a80, #ff5252);
   color: white;
-  box-shadow: 0 3px 12px rgba(239, 68, 68, 0.25);
+  box-shadow: 0 4px 15px rgba(255, 138, 128, 0.3);
 }
 
 .modal-action-btn.danger:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 138, 128, 0.4);
 }
 
 /* 모달 애니메이션 */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.35s ease;
 }
 
 .modal-fade-enter-from,
@@ -1403,7 +1474,7 @@ async function syncFromServer() {
 
 .modal-fade-enter-active .modal-content,
 .modal-fade-leave-active .modal-content {
-  transition: transform 0.3s ease;
+  transition: transform 0.35s ease;
 }
 
 /* ===== 반응형 - 태블릿 ===== */
@@ -1414,33 +1485,24 @@ async function syncFromServer() {
   }
 
   .nav-btn {
-    width: 48px;
-    height: 48px;
+    width: 46px;
+    height: 46px;
   }
 
   .modal-layout {
     flex-direction: column;
     overflow-y: auto;
-    border-radius: 20px;
+    border-radius: 28px;
   }
 
   .modal-image-section {
     flex: none;
     padding: 2rem 1.5rem;
-    border-radius: 20px 20px 0 0;
-  }
-
-  .modal-image-section::before {
-    width: 60%;
-    height: 50%;
-  }
-
-  .modal-image-section::after {
-    border-radius: 0;
+    border-radius: 28px 28px 0 0;
   }
 
   .frame-container {
-    max-width: 300px;
+    max-width: 280px;
   }
 
   .modal-info-section {
@@ -1448,7 +1510,7 @@ async function syncFromServer() {
     padding: 1.5rem;
     max-height: none;
     overflow: visible;
-    border-radius: 0 0 20px 20px;
+    border-radius: 0 0 28px 28px;
   }
 
   .modal-scrollable {
@@ -1457,7 +1519,7 @@ async function syncFromServer() {
   }
 
   .modal-header-info h2 {
-    font-size: 1.4rem;
+    font-size: 1.75rem;
   }
 }
 
@@ -1475,8 +1537,8 @@ async function syncFromServer() {
   }
 
   .nav-btn svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
   }
 
   .modal-content {
@@ -1494,23 +1556,13 @@ async function syncFromServer() {
     flex-direction: column;
     overflow-y: auto;
     max-height: calc(90vh - 20px);
-    border-radius: 16px;
+    border-radius: 24px;
   }
 
-  /* 모바일: 이미지 섹션 - 미술관 느낌 유지 */
   .modal-image-section {
     padding: 1.5rem 1rem;
     flex-shrink: 0;
-    border-radius: 16px 16px 0 0;
-  }
-
-  .modal-image-section::before {
-    width: 80%;
-    height: 45%;
-  }
-
-  .modal-image-section::after {
-    border-radius: 0;
+    border-radius: 24px 24px 0 0;
   }
 
   .frame-container {
@@ -1518,33 +1570,26 @@ async function syncFromServer() {
   }
 
   .frame-outer {
-    padding: 10px;
+    padding: 8px;
+    border-radius: 16px;
   }
 
   .frame-inner {
-    padding: 4px;
+    padding: 3px;
+    border-radius: 14px;
+  }
+
+  .framed-image {
+    border-radius: 12px;
   }
 
   .placeholder-emoji {
     font-size: 3.5rem;
   }
 
-  .frame-shadow {
-    bottom: -18px;
-    height: 18px;
-  }
-
-  .style-label {
-    font-size: 0.75rem;
-    padding: 0.45rem 1rem;
-    margin-top: 1rem;
-  }
-
-  /* 모바일: 정보 섹션 - 가독성 최적화 */
   .modal-info-section {
     padding: 1.25rem;
-    border-radius: 0 0 16px 16px;
-    background: white;
+    border-radius: 0 0 24px 24px;
   }
 
   .modal-header-info {
@@ -1553,9 +1598,8 @@ async function syncFromServer() {
   }
 
   .modal-header-info h2 {
-    font-size: 1.15rem;
+    font-size: 1.5rem;
     margin-bottom: 0.6rem;
-    line-height: 1.4;
   }
 
   .meta-badge {
@@ -1563,24 +1607,15 @@ async function syncFromServer() {
     font-size: 0.8rem;
   }
 
-  .badge-icon {
-    font-size: 0.85rem;
-  }
-
-  /* 모바일: 섹션 패딩 최적화 */
   .modal-section {
     padding: 0.9rem 1rem;
     margin-bottom: 0.75rem;
-    border-radius: 12px;
+    border-radius: 14px;
   }
 
   .section-title {
     font-size: 0.85rem;
     margin-bottom: 0.5rem;
-  }
-
-  .section-icon {
-    font-size: 0.9rem;
   }
 
   .dream-content-text,
@@ -1590,7 +1625,6 @@ async function syncFromServer() {
     line-height: 1.7;
   }
 
-  /* 모바일: 행운 정보 가로 배치 */
   .lucky-section {
     padding: 0.75rem 1rem;
   }
@@ -1612,7 +1646,6 @@ async function syncFromServer() {
     height: 14px;
   }
 
-  /* 모바일: 액션 버튼 가로 유지, 컴팩트 */
   .modal-actions {
     gap: 0.6rem;
     padding-top: 0.85rem;
@@ -1623,7 +1656,7 @@ async function syncFromServer() {
     padding: 0.75rem 0.85rem;
     font-size: 0.8rem;
     gap: 0.3rem;
-    border-radius: 10px;
+    border-radius: 12px;
   }
 
   .modal-action-btn svg {
@@ -1649,11 +1682,11 @@ async function syncFromServer() {
   }
 
   .frame-outer {
-    padding: 8px;
+    padding: 6px;
   }
 
   .frame-inner {
-    padding: 3px;
+    padding: 2px;
   }
 
   .modal-info-section {
@@ -1661,7 +1694,7 @@ async function syncFromServer() {
   }
 
   .modal-header-info h2 {
-    font-size: 1rem;
+    font-size: 1.3rem;
   }
 
   .modal-section {
@@ -1688,18 +1721,39 @@ async function syncFromServer() {
 }
 
 /* ===== 갤러리 카드 반응형 ===== */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .gallery-card {
-    padding: 1.5rem;
-    border-radius: 30px;
+    border-radius: 24px;
+    padding: 1.25rem 1.5rem 1.5rem;
   }
 
   .page-title {
-    font-size: 2rem;
+    font-size: 1.8rem;
+    padding: 0.4rem 1rem;
+  }
+
+  .title-badge {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .gallery-card {
+    padding: 1.25rem;
+    border-radius: 24px;
+  }
+
+  .page-title {
+    font-size: 1.6rem;
+    padding: 0.35rem 0.85rem;
+  }
+
+  .gallery-content {
+    gap: 1.25rem;
   }
 
   .gallery-grid {
-    gap: 1.5rem;
+    gap: 1.25rem;
   }
 
   .gallery-grid.grid {
@@ -1711,7 +1765,16 @@ async function syncFromServer() {
   }
 
   .filter-btn {
-    padding: 0.6rem 1rem;
+    padding: 0.55rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .gallery-stats {
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .stat-item {
     font-size: 0.9rem;
   }
 }
