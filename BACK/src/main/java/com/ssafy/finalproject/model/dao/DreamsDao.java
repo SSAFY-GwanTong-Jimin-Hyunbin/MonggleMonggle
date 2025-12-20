@@ -1,6 +1,7 @@
 package com.ssafy.finalproject.model.dao;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.apache.ibatis.annotations.Mapper;
@@ -45,4 +46,7 @@ public interface DreamsDao {
     
     // 이미지가 있는 꿈 전체 조회 (갤러리용)
     List<Dream> findDreamsWithImagesByUserId(@Param("userId") Long userId);
+    
+    // 사용자별 꿈 개수 랭킹 조회
+    List<Map<String, Object>> findDreamCountRanking();
 }
