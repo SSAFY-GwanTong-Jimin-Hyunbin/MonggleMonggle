@@ -1,10 +1,8 @@
 import { fileURLToPath, URL } from "node:url";
-
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import vueDevTools from "vite-plugin-vue-devtools";
+import vueDevTools from "vite-plugin-vue-devtools"; // 'vue-'를 'vite-'로 수정
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), vueDevTools()],
   resolve: {
@@ -12,24 +10,44 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  // 개발 서버 설정 (npm run dev)
   server: {
     port: 5173,
     allowedHosts: [".ngrok-free.app"],
     proxy: {
-      // FastAPI AI 서버 프록시
       "/ai-api": {
         target: "https://7c937c6a5895.ngrok-free.app",
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/ai-api/, ""),
       },
-      // Spring Boot 백엔드 API 프록시
       "/api": {
         target: "http://localhost:8080",
         changeOrigin: true,
         secure: false,
       },
-      // 업로드된 이미지 정적 파일 프록시
+      "/uploads": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+  // 프리뷰 서버 설정 (npm run preview)
+  preview: {
+    port: 4173,
+    proxy: {
+      "/ai-api": {
+        target: "https://7c937c6a5895.ngrok-free.app",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/ai-api/, ""),
+      },
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+        secure: false,
+      },
       "/uploads": {
         target: "http://localhost:8080",
         changeOrigin: true,

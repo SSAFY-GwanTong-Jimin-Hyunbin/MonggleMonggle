@@ -92,4 +92,15 @@
         ORDER BY d.dream_date DESC
     </select>
 
+    <!-- 사용자별 꿈 개수 랭킹 조회 -->
+    <select id="findDreamCountRanking" resultType="map">
+        SELECT u.name AS name, COUNT(d.dream_id) AS dream_count
+        FROM users u
+        LEFT JOIN dreams d ON u.user_id = d.user_id AND d.deleted_date IS NULL
+        WHERE u.deleted_date IS NULL
+        GROUP BY u.user_id, u.name
+        HAVING COUNT(d.dream_id) > 0
+        ORDER BY dream_count DESC, u.name ASC
+    </select>
+
 </mapper>

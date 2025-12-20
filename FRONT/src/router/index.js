@@ -56,6 +56,12 @@ const router = createRouter({
           component: () => import("../views/ImageGalleryView.vue"),
           meta: { requiresAuth: true },
         },
+        {
+          path: "ranking",
+          name: "ranking",
+          component: () => import("../views/RankingView.vue"),
+          meta: { requiresAuth: true },
+        },
         { path: ":pathMatch(.*)*", redirect: { name: "auth" } },
       ],
     },
