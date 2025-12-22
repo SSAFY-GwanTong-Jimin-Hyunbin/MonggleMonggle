@@ -49,6 +49,24 @@
               <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
             </svg>
           </div>
+
+          <!-- ADMIN 전용: 다시 분석하기 버튼 -->
+          <div v-if="isAdmin && !isLocked" class="admin-actions">
+            <button
+              class="regenerate-btn"
+              :disabled="isLoadingReport || isGeneratingReport"
+              @click="handleRegenerate"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+                <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                <path d="M16 21h5v-5" />
+              </svg>
+              <span v-if="isGeneratingReport">분석 중...</span>
+              <span v-else>다시 분석하기</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -60,6 +78,8 @@ import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { storeToRefs } from "pinia";
 import { useAuthStore } from "../../stores/authStore";
 import { monthlyAnalysisService } from "../../services/monthlyAnalysisService";
+
+// ADMIN 권한 체크
 
 const props = defineProps({
   isOpen: {
@@ -83,7 +103,7 @@ const props = defineProps({
 const emit = defineEmits(["close", "mark-read"]);
 
 const authStore = useAuthStore();
-const { currentUser } = storeToRefs(authStore);
+const { currentUser, isAdmin } = storeToRefs(authStore);
 
 // 리포트 상태
 const monthlyReport = ref("");
@@ -95,9 +115,46 @@ const reportError = ref("");
 const letterReadStatus = ref({});
 const LETTER_READ_KEY = "monthlyReportRead";
 
+// 생성 요청 중복 방지를 위한 세션 스토리지 키
+const GENERATING_KEY = "monthlyReportGenerating";
+
 // 현재 시간 (직전 달 판단용)
 const now = ref(new Date());
 let nowTimer = null;
+
+// 생성 중 상태 확인 (세션 스토리지 기반)
+function isCurrentlyGenerating() {
+  try {
+    const generating = sessionStorage.getItem(GENERATING_KEY);
+    if (!generating) return false;
+    const { year, month, timestamp } = JSON.parse(generating);
+    // 5분 이상 경과한 요청은 만료 처리
+    if (Date.now() - timestamp > 5 * 60 * 1000) {
+      sessionStorage.removeItem(GENERATING_KEY);
+      return false;
+    }
+    return year === props.year && month === props.month;
+  } catch {
+    return false;
+  }
+}
+
+// 생성 중 상태 설정
+function setGeneratingState(isGenerating) {
+  try {
+    if (isGenerating) {
+      sessionStorage.setItem(GENERATING_KEY, JSON.stringify({
+        year: props.year,
+        month: props.month,
+        timestamp: Date.now()
+      }));
+    } else {
+      sessionStorage.removeItem(GENERATING_KEY);
+    }
+  } catch {
+    // 세션 스토리지 오류 무시
+  }
+}
 
 // 직전 달인지 확인 (편지 생성/조회는 직전 달만 가능)
 const isPreviousMonth = computed(() => {
@@ -169,7 +226,14 @@ function markAsRead() {
 
 // 월간 리포트 생성 시도
 async function tryGenerateReport() {
+  // 이미 다른 탭/창에서 생성 중이면 조회로 대체
+  if (isCurrentlyGenerating()) {
+    await retryFetchReport();
+    return;
+  }
+
   isGeneratingReport.value = true;
+  setGeneratingState(true);
 
   try {
     const generated = await monthlyAnalysisService.generateMonthlyAnalysis(props.year, props.month);
@@ -180,10 +244,16 @@ async function tryGenerateReport() {
       await retryFetchReport();
     }
   } catch (genErr) {
-    reportError.value = genErr?.response?.data?.message || genErr.message || "월간 리포트를 생성하지 못했습니다.";
-    monthlyReport.value = "";
+    // 중복 키 오류 (이미 다른 요청에서 생성됨) - 조회로 재시도
+    if (genErr?.response?.status === 409 || genErr?.response?.data?.message?.includes("Duplicate")) {
+      await retryFetchReport();
+    } else {
+      reportError.value = genErr?.response?.data?.message || genErr.message || "월간 리포트를 생성하지 못했습니다.";
+      monthlyReport.value = "";
+    }
   } finally {
     isGeneratingReport.value = false;
+    setGeneratingState(false);
   }
 }
 
@@ -196,8 +266,8 @@ async function fetchMonthlyReport() {
     return;
   }
 
-  // 이미 로딩 중이거나 생성 중이면 중복 호출 방지
-  if (isLoadingReport.value || isGeneratingReport.value) {
+  // 이미 로딩 중이거나 생성 중이면 중복 호출 방지 (로컬 상태 + 세션 스토리지)
+  if (isLoadingReport.value || isGeneratingReport.value || isCurrentlyGenerating()) {
     return;
   }
 
@@ -239,19 +309,28 @@ async function fetchMonthlyReport() {
 
 // 생성 후 결과 다시 조회 (polling)
 async function retryFetchReport(retries = 3, delay = 2000) {
+  console.log(`[retryFetchReport] 시작: ${retries}회, ${delay}ms 간격`);
+  
   for (let i = 0; i < retries; i++) {
+    console.log(`[retryFetchReport] ${i + 1}/${retries} 시도 중...`);
     await new Promise((resolve) => setTimeout(resolve, delay));
 
     try {
       const response = await monthlyAnalysisService.getMonthlyAnalysis(props.year, props.month);
+      console.log(`[retryFetchReport] 응답:`, response);
+      
       const report = response?.monthlyReport || "";
 
       if (report) {
         monthlyReport.value = report;
         reportError.value = "";
+        console.log(`[retryFetchReport] 성공!`);
         return;
+      } else {
+        console.log(`[retryFetchReport] 리포트가 아직 비어있음`);
       }
     } catch (err) {
+      console.error(`[retryFetchReport] 오류:`, err);
       // 아직 생성 중이면 계속 재시도
       if (err?.response?.status !== 404) {
         break;
@@ -271,6 +350,42 @@ function resetState() {
   isLoadingReport.value = false;
   isGeneratingReport.value = false;
   reportError.value = "";
+}
+
+// ADMIN 전용: 강제 재분석
+async function handleRegenerate() {
+  if (!isAdmin.value) return;
+  
+  const confirmed = confirm("기존 분석 결과를 덮어쓰고 새로 분석하시겠습니까?");
+  if (!confirmed) return;
+
+  isGeneratingReport.value = true;
+  setGeneratingState(true);
+  reportError.value = "";
+  monthlyReport.value = ""; // 기존 내용 초기화
+
+  try {
+    console.log("[ADMIN] 재분석 요청 시작:", props.year, props.month);
+    const generated = await monthlyAnalysisService.generateMonthlyAnalysis(props.year, props.month);
+    console.log("[ADMIN] 재분석 응답:", generated);
+    
+    const report = generated?.monthlyReport || "";
+    
+    if (report) {
+      monthlyReport.value = report;
+      console.log("[ADMIN] 리포트 설정 완료");
+    } else {
+      // 생성 요청은 성공했지만 결과가 비어있으면 조회로 재시도
+      console.log("[ADMIN] 리포트가 비어있음, 재조회 시도");
+      await retryFetchReport(5, 3000); // 5번, 3초 간격으로 재시도
+    }
+  } catch (err) {
+    console.error("[ADMIN] 재분석 실패:", err);
+    reportError.value = err?.response?.data?.message || err.message || "재분석에 실패했습니다.";
+  } finally {
+    isGeneratingReport.value = false;
+    setGeneratingState(false);
+  }
 }
 
 // 모달 열릴 때 읽음 상태 마킹
@@ -512,5 +627,45 @@ defineExpose({
 .report-modal::-webkit-scrollbar-thumb {
   background: var(--color-purple-60);
   border-radius: 4px;
+}
+
+/* ADMIN 전용 액션 */
+.admin-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 1;
+}
+
+.regenerate-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #e74c3c;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(192, 57, 43, 0.1));
+  color: #c0392b;
+  font-family: "Dongle", sans-serif;
+  font-weight: 700;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.regenerate-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(231, 76, 60, 0.2), rgba(192, 57, 43, 0.2));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.2);
+}
+
+.regenerate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.regenerate-btn svg {
+  stroke: currentColor;
 }
 </style>

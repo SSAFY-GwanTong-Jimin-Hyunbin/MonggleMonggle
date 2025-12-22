@@ -40,7 +40,7 @@ file:
 
 # FastAPI 연동 설정
 fastapi:
-  url: ${FASTAPI_URL:http://localhost:8000}
+  url: ${FASTAPI_URL}
   timeout: ${FASTAPI_TIMEOUT:60000} # 60초
 
 # 로깅 설정

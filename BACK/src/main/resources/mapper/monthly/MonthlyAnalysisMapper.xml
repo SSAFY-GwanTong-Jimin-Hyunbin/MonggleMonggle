@@ -16,7 +16,7 @@
         <result property="updatedDate" column="updated_date"/>
     </resultMap>
 
-    <!-- 월별 분석 저장 -->
+    <!-- 월별 분석 저장 (중복 시 업데이트) -->
     <insert id="insertMonthlyAnalysis" parameterType="com.ssafy.finalproject.model.entity.MonthlyAnalysis" useGeneratedKeys="true" keyProperty="analysisId">
         INSERT INTO dream_monthly_analysis (
             user_id, year, month, dream_count, avg_emotion_score, monthly_report, created_date
@@ -24,6 +24,11 @@
         VALUES (
             #{userId}, #{year}, #{month}, #{dreamCount}, #{avgEmotionScore}, #{monthlyReport}, NOW()
         )
+        ON DUPLICATE KEY UPDATE
+            dream_count = VALUES(dream_count),
+            avg_emotion_score = VALUES(avg_emotion_score),
+            monthly_report = VALUES(monthly_report),
+            updated_date = NOW()
     </insert>
 
     <!-- 월별 분석 조회 -->
