@@ -15,12 +15,7 @@ export default defineConfig({
     port: 5173,
     allowedHosts: [".ngrok-free.app"],
     proxy: {
-      "/ai-api": {
-        target: "https://7c937c6a5895.ngrok-free.app",
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/ai-api/, ""),
-      },
+      // 모든 API 요청은 Spring Boot를 통해 처리
       "/api": {
         target: "http://localhost:8080",
         changeOrigin: true,
@@ -37,12 +32,7 @@ export default defineConfig({
   preview: {
     port: 4173,
     proxy: {
-      "/ai-api": {
-        target: "https://7c937c6a5895.ngrok-free.app",
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/ai-api/, ""),
-      },
+      // 모든 API 요청은 Spring Boot를 통해 처리
       "/api": {
         target: "http://localhost:8080",
         changeOrigin: true,
