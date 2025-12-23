@@ -24,13 +24,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/fortune")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer Authentication")
-@Tag(name = "7. Fortune", description = "통합 운세 API (꿈 해몽 + 오늘의 운세)")
+@Tag(name = "10. 통합 운세 API", description = "꿈 해몽 + 오늘의 운세 통합 분석 API")
 public class FortuneController {
     
     private final FortuneService fortuneService;
     
     @Operation(
-            summary = "7.1 통합 운세 조회",
+            summary = "10-1. 통합 운세 조회",
             description = "꿈 내용과 사용자 정보를 바탕으로 꿈 해몽과 오늘의 운세를 통합 분석합니다. " +
                     "AI 처리로 인해 응답 시간이 길어질 수 있습니다 (최대 2분)."
     )
