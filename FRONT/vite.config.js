@@ -1,11 +1,11 @@
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueDevTools from "vite-plugin-vue-devtools";
 
 export default defineConfig(({ mode }) => {
   // 현재 mode(dev, production 등)에 맞는 env 로드
-  const env = process.env;
+  const env = loadEnv(mode, process.cwd(), "");
 
   return {
     plugins: [vue(), vueDevTools()],
