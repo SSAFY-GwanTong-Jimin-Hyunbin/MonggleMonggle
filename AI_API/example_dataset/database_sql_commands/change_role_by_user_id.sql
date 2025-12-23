@@ -2,5 +2,5 @@
 USE dream_db;
 
 UPDATE users 
-SET role = 'USER'
+SET role = 'ADMIN' , coin = 999
 WHERE user_id = 2;

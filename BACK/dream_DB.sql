@@ -1,5 +1,5 @@
 -- 0. 기존 DB 삭제 (선택)
-DROP DATABASE IF EXISTS `dream_db`;
+-- DROP DATABASE IF EXISTS `dream_db`;
 
 -- 1. 데이터베이스 생성
 CREATE DATABASE IF NOT EXISTS `dream_db`
