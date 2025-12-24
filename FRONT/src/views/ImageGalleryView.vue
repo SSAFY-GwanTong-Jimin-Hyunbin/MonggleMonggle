@@ -134,15 +134,7 @@
     </div>
 
     <!-- 이미지 상세 모달 -->
-    <ImageDetailModal
-      :image="selectedImage"
-      :has-prev="hasPrevImage"
-      :has-next="hasNextImage"
-      @close="closeImageDetail"
-      @prev="goToPrevImage"
-      @next="goToNextImage"
-      @delete="deleteImage"
-    />
+    <ImageDetailModal :image="selectedImage" :has-prev="hasPrevImage" :has-next="hasNextImage" @close="closeImageDetail" @prev="goToPrevImage" @next="goToNextImage" @delete="deleteImage" />
   </div>
 </template>
 
@@ -167,20 +159,20 @@ const selectedImage = ref(null);
 const syncing = ref(false);
 
 const filters = [
-  { 
-    id: "all", 
-    label: "전체", 
-    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`
+  {
+    id: "all",
+    label: "전체",
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>`,
   },
-  { 
-    id: "recent", 
-    label: "최근", 
-    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
+  {
+    id: "recent",
+    label: "최근",
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
   },
-  { 
-    id: "liked", 
-    label: "찜", 
-    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="#f9a825" stroke="#f9a825" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`
+  {
+    id: "liked",
+    label: "찜",
+    icon: `<svg width="16" height="16" viewBox="0 0 24 24" fill="#f9a825" stroke="#f9a825" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>`,
   },
 ];
 
@@ -248,13 +240,12 @@ function toggleLike(image) {
   galleryStore.toggleImageLike(image.id);
 }
 
-
 async function deleteImage(image) {
   const confirmed = await confirm({
-    title: '이미지 삭제',
-    message: '정말 이 이미지를 삭제하시겠습니까?',
-    type: 'danger',
-    confirmText: '삭제'
+    title: "이미지 삭제",
+    message: "정말 이 이미지를 삭제하시겠습니까?",
+    type: "danger",
+    confirmText: "삭제",
   });
   if (!confirmed) return;
 
@@ -613,7 +604,7 @@ async function syncFromServer() {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  background: linear-gradient(135deg, #454278 0%, #7C78B8 50%, #C4B6DC 100%);
+  background: linear-gradient(135deg, #454278 0%, #7c78b8 50%, #c4b6dc 100%);
   transition: transform 0.3s ease;
 }
 
@@ -698,15 +689,14 @@ async function syncFromServer() {
 .meta-item.date-badge {
   color: var(--color-purple);
   font-weight: 600;
-  font-family: 'Dongle';
+  font-family: "Dongle";
   font-size: 1rem;
 }
-
 
 .image-actions {
   display: flex;
   gap: 0.4rem;
-  justify-content:flex-end;
+  justify-content: flex-end;
 }
 
 .action-btn {
@@ -766,8 +756,13 @@ async function syncFromServer() {
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .empty-gallery h3 {
