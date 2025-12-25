@@ -127,7 +127,7 @@ async function handleDelete() {
     confirmText: '삭제'
   });
   if (confirmed) {
-    deleteDream();
+    await deleteDream();
     router.push({ name: "calendar" });
   }
 }

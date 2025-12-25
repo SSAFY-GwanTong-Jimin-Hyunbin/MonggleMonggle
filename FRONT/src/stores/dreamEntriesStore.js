@@ -230,6 +230,12 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
 
       if (token && dreamId) {
         await dreamService.deleteDream(dreamId);
+        
+        // 갤러리에서도 해당 꿈의 이미지 제거
+        const imageToRemove = galleryStore.galleryImages.find((img) => img.dreamId === dreamId);
+        if (imageToRemove) {
+          galleryStore.removeFromGallery(imageToRemove.id);
+        }
       }
 
       const updatedPosts = { ...posts.value };
@@ -259,8 +265,20 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
     try {
       const response = await dreamService.getDreamsByMonth(year, month);
 
-      // 서버 데이터를 로컬 상태에 병합
+      // 서버 데이터를 로컬 상태에 반영
       if (response.dreams && Array.isArray(response.dreams)) {
+        // 해당 월의 기존 데이터를 제거하고 서버 데이터로 교체 (삭제 반영을 위해)
+        const yearMonth = `${year}-${String(month).padStart(2, "0")}`;
+        const updatedPosts = { ...posts.value };
+        
+        // 현재 월에 해당하는 모든 키 삭제
+        Object.keys(updatedPosts).forEach(key => {
+          if (key.startsWith(yearMonth)) {
+            delete updatedPosts[key];
+          }
+        });
+
+        // 서버에서 받은 데이터 추가
         response.dreams.forEach((dream) => {
           const dateKey = dream.dreamDate;
 
@@ -273,7 +291,7 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
             starColor = getColorHex(dream.luckyColorName);
           }
 
-          posts.value[dateKey] = {
+          updatedPosts[dateKey] = {
             dreamId: dream.dreamId,
             title: dream.title,
             content: dream.content,
@@ -285,6 +303,8 @@ export const useDreamEntriesStore = defineStore("dreamEntries", () => {
             luckyColorNumber: dream.luckyColorNumber || null,
           };
         });
+
+        posts.value = updatedPosts;
         persistEntries();
       }
     } catch (err) {
